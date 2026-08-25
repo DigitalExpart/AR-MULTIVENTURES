@@ -1,0 +1,135 @@
+import { Routes, Route } from 'react-router-dom';
+import { PublicLayout } from '@/components/layout/public-layout';
+import { AppLayout } from '@/components/layout/app-layout';
+import { AdminLayout } from '@/components/layout/admin-layout';
+import { LandingPage } from '@/pages/landing/landing-page';
+import { LoginPage } from '@/features/auth/pages/login';
+import { RegisterPage } from '@/features/auth/pages/register';
+import { ForgotPasswordPage } from '@/features/auth/pages/forgot-password';
+
+// Customer Portal Pages
+import { DashboardPage } from '@/features/dashboard/pages/dashboard';
+import { RequisitionsListPage } from '@/features/requisitions/pages/requisitions-list';
+import { NewRequisitionPage } from '@/features/requisitions/pages/new-requisition';
+import { OrdersListPage } from '@/features/orders/pages/orders-list';
+import { DeliveriesListPage } from '@/features/deliveries/pages/deliveries-list';
+import { InvoicesListPage } from '@/features/invoices/pages/invoices-list';
+import { PaymentsListPage } from '@/features/payments/pages/payments-list';
+import { AccountPage } from '@/features/account/pages/account';
+import { NotificationsPage } from '@/features/notifications/pages/notifications';
+
+// Admin Operations & Catalog Pages
+import { AdminDashboardPage } from '@/features/admin/pages/dashboard';
+import { AdminRequisitionsListPage } from '@/features/admin/pages/requisitions-list';
+import { AdminRequisitionDetailPage } from '@/features/admin/pages/requisition-detail';
+import { AdminCustomersListPage } from '@/features/admin/pages/customers-list';
+import { AdminCustomerDetailPage } from '@/features/admin/pages/customer-detail';
+import { AdminQuarriesListPage } from '@/features/admin/pages/quarries-list';
+import { AdminNewQuarryPage } from '@/features/admin/pages/new-quarry';
+import { AdminQuarryDetailPage } from '@/features/admin/pages/quarry-detail';
+import { AdminMaterialsListPage } from '@/features/admin/pages/materials-list';
+import { AdminDestinationsListPage } from '@/features/admin/pages/destinations-list';
+import { AdminDestinationRequestsPage } from '@/features/admin/pages/destination-requests';
+
+// Admin Commercial & Pricing Pages
+import { AdminPricingCenterPage } from '@/features/admin/pages/pricing-center';
+import { AdminMaterialPricesPage } from '@/features/admin/pages/material-prices';
+import { AdminHaulageRatesPage } from '@/features/admin/pages/haulage-rates';
+import { AdminCustomerPricesPage } from '@/features/admin/pages/customer-prices';
+import { AdminPromotionsPage } from '@/features/admin/pages/promotions';
+import { AdminDiscountsFuelPage } from '@/features/admin/pages/discounts-fuel';
+
+// Admin Finance & Sub-Ledger Pages
+import { AdminFinanceDashboardPage } from '@/features/admin/finance/dashboard';
+import { AdminFinanceAccountsPage } from '@/features/admin/finance/accounts';
+import { AdminFinanceInvoicesPage } from '@/features/admin/finance/invoices';
+import { AdminFinancePaymentsPage } from '@/features/admin/finance/payments';
+import { AdminFinanceCreditPage } from '@/features/admin/finance/credit';
+import { AdminFinanceStatementsPage } from '@/features/admin/finance/statements';
+
+// Admin Administration Pages
+import { AdminUsersListPage } from '@/features/admin/pages/users-list';
+import { AdminRolesPage } from '@/features/admin/pages/roles';
+import { AdminAuditTrailPage } from '@/features/admin/pages/audit-trail';
+import { AdminSettingsPage } from '@/features/admin/pages/settings';
+
+import { NotFoundPage } from '@/pages/not-found';
+
+export function App() {
+  return (
+    <Routes>
+      {/* Public Landing Route */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<LandingPage />} />
+      </Route>
+
+      {/* Authentication Routes */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+      {/* Authenticated Customer Portal Shell (/app/*) */}
+      <Route path="/app" element={<AppLayout />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="requisitions" element={<RequisitionsListPage />} />
+        <Route path="requisitions/new" element={<NewRequisitionPage />} />
+        <Route path="orders" element={<OrdersListPage />} />
+        <Route path="deliveries" element={<DeliveriesListPage />} />
+        <Route path="invoices" element={<InvoicesListPage />} />
+        <Route path="payments" element={<PaymentsListPage />} />
+        <Route path="account" element={<AccountPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="profile" element={<AccountPage />} />
+      </Route>
+
+      {/* Authenticated Internal Staff Operations Shell (/admin/*) */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboardPage />} />
+        
+        {/* Operations */}
+        <Route path="requisitions" element={<AdminRequisitionsListPage />} />
+        <Route path="requisitions/:id" element={<AdminRequisitionDetailPage />} />
+        <Route path="customers" element={<AdminCustomersListPage />} />
+        <Route path="customers/:id" element={<AdminCustomerDetailPage />} />
+
+        {/* Catalog */}
+        <Route path="quarries" element={<AdminQuarriesListPage />} />
+        <Route path="quarries/new" element={<AdminNewQuarryPage />} />
+        <Route path="quarries/:id" element={<AdminQuarryDetailPage />} />
+        <Route path="materials" element={<AdminMaterialsListPage />} />
+        <Route path="materials/:id" element={<AdminMaterialsListPage />} />
+        <Route path="destinations" element={<AdminDestinationsListPage />} />
+        <Route path="destination-requests" element={<AdminDestinationRequestsPage />} />
+
+        {/* Commercial & Pricing */}
+        <Route path="pricing" element={<AdminPricingCenterPage />} />
+        <Route path="pricing/materials" element={<AdminMaterialPricesPage />} />
+        <Route path="pricing/haulage" element={<AdminHaulageRatesPage />} />
+        <Route path="pricing/loading" element={<AdminDiscountsFuelPage />} />
+        <Route path="pricing/customers" element={<AdminCustomerPricesPage />} />
+        <Route path="pricing/discounts" element={<AdminDiscountsFuelPage />} />
+        <Route path="pricing/promotions" element={<AdminPromotionsPage />} />
+        <Route path="pricing/fuel" element={<AdminDiscountsFuelPage />} />
+
+        {/* Finance & Sub-Ledger */}
+        <Route path="finance" element={<AdminFinanceDashboardPage />} />
+        <Route path="finance/accounts" element={<AdminFinanceAccountsPage />} />
+        <Route path="finance/invoices" element={<AdminFinanceInvoicesPage />} />
+        <Route path="finance/invoices/:id" element={<AdminFinanceInvoicesPage />} />
+        <Route path="finance/payments" element={<AdminFinancePaymentsPage />} />
+        <Route path="finance/payments/:id" element={<AdminFinancePaymentsPage />} />
+        <Route path="finance/credit" element={<AdminFinanceCreditPage />} />
+        <Route path="finance/statements" element={<AdminFinanceStatementsPage />} />
+
+        {/* Administration */}
+        <Route path="users" element={<AdminUsersListPage />} />
+        <Route path="roles" element={<AdminRolesPage />} />
+        <Route path="audit" element={<AdminAuditTrailPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
+      </Route>
+
+      {/* Catch-all 404 Route */}
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
+}

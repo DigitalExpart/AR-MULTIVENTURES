@@ -1,0 +1,16 @@
+{
+  "name": "@ar-multiventures/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ar-multiventures/types": "*",
+    "@ar-multiventures/validation": "*",
+    "@supabase/supabase-js": "^2.49.0"
+  }
+}

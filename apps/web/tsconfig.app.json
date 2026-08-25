@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@ar-multiventures/types": ["../../packages/types/src"],
+      "@ar-multiventures/types/*": ["../../packages/types/src/*"],
+      "@ar-multiventures/validation": ["../../packages/validation/src"],
+      "@ar-multiventures/validation/*": ["../../packages/validation/src/*"],
+      "@ar-multiventures/business-logic": ["../../packages/business-logic/src"],
+      "@ar-multiventures/business-logic/*": ["../../packages/business-logic/src/*"],
+      "@ar-multiventures/config": ["../../packages/config/src"],
+      "@ar-multiventures/config/*": ["../../packages/config/src/*"],
+      "@ar-multiventures/api": ["../../packages/api/src"],
+      "@ar-multiventures/api/*": ["../../packages/api/src/*"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "../../packages/*/src/**/*"
+  ]
+}

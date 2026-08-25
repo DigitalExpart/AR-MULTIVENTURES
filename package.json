@@ -1,0 +1,22 @@
+{
+  "name": "ar-multiventures-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AR Multiventures — Integrated Granite Supply, Customer Requisition & Truck Haulage Management System",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@ar-multiventures/web",
+    "build": "npm run build --workspace=@ar-multiventures/web",
+    "lint": "npm run lint --workspace=@ar-multiventures/web",
+    "typecheck": "npm run typecheck --workspace=@ar-multiventures/web"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.4"
+  }
+}
