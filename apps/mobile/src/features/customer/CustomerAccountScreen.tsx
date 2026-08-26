@@ -5,10 +5,10 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard, SectionHeader } from '../../components/common/AppCard';
 import { MoneyText } from '../../components/common/MoneyText';
 import { ProgressBar } from '../../components/common/ProgressBar';
@@ -41,12 +41,27 @@ export function CustomerAccountScreen({ onNavigate }: { onNavigate?: (screen: st
   };
 
   const creditLimit = summary?.creditLimit || 25000000;
-  const outstanding = summary?.outstandingBalance || 2450000;
+  const outstanding = (summary as any)?.outstandingBalance || 2450000;
   const availableCredit = summary?.availableCredit || (creditLimit - outstanding);
   const utilization = creditLimit > 0 ? (outstanding / creditLimit) * 100 : 0;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Sub-Ledger & Account"
+        subtitle="Running Balances & Credit Limits"
+        showBack={false}
+        rightAction={
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => onNavigate?.('profile')}
+            style={styles.profileIconBtn}
+          >
+            <Text style={styles.profileIconText}>👤</Text>
+          </TouchableOpacity>
+        }
+      />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
@@ -59,71 +74,112 @@ export function CustomerAccountScreen({ onNavigate }: { onNavigate?: (screen: st
 
         {/* Financial Sub-Ledger Balance Card */}
         <AppCard style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Current Outstanding Sub-Ledger Balance</Text>
-          <MoneyText amount={outstanding} size="display" color={Colors.danger} />
-          <Text style={styles.termsText}>Payment Terms: 14 Days Net</Text>
-
-          <View style={styles.creditBarContainer}>
-            <ProgressBar
-              progress={utilization}
-              showPercent
-              label="Credit Facility Utilization"
-              color={utilization > 80 ? Colors.danger : Colors.primary}
-            />
-          </View>
-
-          <View style={styles.creditStatsRow}>
+          <Text style={styles.cardHeaderTitle}>Sub-Ledger Position</Text>
+          <View style={styles.balanceRow}>
             <View>
-              <Text style={styles.statLabel}>Credit Limit</Text>
-              <MoneyText amount={creditLimit} size="sm" />
+              <Text style={styles.balanceLabel}>Outstanding Payable</Text>
+              <MoneyText amount={outstanding} size="lg" weight="bold" color={Colors.danger} />
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.statLabel}>Available Credit</Text>
-              <MoneyText amount={availableCredit} size="sm" color={Colors.primaryDark} />
-            </View>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => onNavigate?.('invoices')}
+              style={styles.payInvoicesBtn}
+            >
+              <Text style={styles.payInvoicesText}>Pay Invoices →</Text>
+            </TouchableOpacity>
           </View>
         </AppCard>
 
-        {/* Quick Account Actions */}
-        <SectionHeader title="Financial Statements" />
-        <AppCard style={styles.actionRowCard}>
+        {/* Credit Limit & Utilization */}
+        <SectionHeader title="Commercial Credit Facility" />
+        <AppCard style={styles.creditCard}>
+          <View style={styles.creditGrid}>
+            <View>
+              <Text style={styles.creditLabel}>Approved Credit Limit</Text>
+              <MoneyText amount={creditLimit} size="md" color={Colors.textPrimary} />
+            </View>
+            <View style={styles.alignRight}>
+              <Text style={styles.creditLabel}>Available Credit</Text>
+              <MoneyText amount={availableCredit} size="md" color={Colors.success} />
+            </View>
+          </View>
+
+          <View style={styles.progressWrapper}>
+            <ProgressBar
+              progress={utilization}
+              color={utilization > 80 ? Colors.danger : Colors.primary}
+              showPercent
+              label={`Credit Utilization (${utilization.toFixed(1)}%)`}
+            />
+          </View>
+        </AppCard>
+
+        {/* Quick Financial Shortcuts */}
+        <SectionHeader title="Financial Documents & Actions" />
+        <AppCard style={styles.menuCard}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => onNavigate?.('invoices')}
-            style={styles.actionItem}
+            style={styles.menuItem}
           >
-            <Text style={styles.actionIcon}>📄</Text>
-            <View style={styles.actionTextCol}>
-              <Text style={styles.actionTitle}>Commercial Invoices</Text>
-              <Text style={styles.actionSubtitle}>View proformas, tax invoices & balances</Text>
+            <Text style={styles.menuIcon}>📄</Text>
+            <View style={styles.menuTextCol}>
+              <Text style={styles.menuTitle}>Proforma & Tax Invoices</Text>
+              <Text style={styles.menuSubtitle}>View pending and settled VAT invoices</Text>
             </View>
-            <Text style={styles.actionChevron}>→</Text>
+            <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={styles.menuDivider} />
 
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => onNavigate?.('payments')}
-            style={styles.actionItem}
+            style={styles.menuItem}
           >
-            <Text style={styles.actionIcon}>💳</Text>
-            <View style={styles.actionTextCol}>
-              <Text style={styles.actionTitle}>Payments & Receipts</Text>
-              <Text style={styles.actionSubtitle}>Paystack settlements & official electronic receipts</Text>
+            <Text style={styles.menuIcon}>💳</Text>
+            <View style={styles.menuTextCol}>
+              <Text style={styles.menuTitle}>Online & Bank Settlements</Text>
+              <Text style={styles.menuSubtitle}>Paystack checkout and deposit slips</Text>
             </View>
-            <Text style={styles.actionChevron}>→</Text>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
+          <View style={styles.menuDivider} />
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => onNavigate?.('profile')}
+            style={styles.menuItem}
+          >
+            <Text style={styles.menuIcon}>⚙️</Text>
+            <View style={styles.menuTextCol}>
+              <Text style={styles.menuTitle}>Company Profile & Role Settings</Text>
+              <Text style={styles.menuSubtitle}>CAC number, registered address & auth</Text>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
         </AppCard>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  profileIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.secondaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileIconText: {
+    fontSize: 16,
   },
   scrollContent: {
     padding: Spacing.lg,
@@ -131,82 +187,105 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   accountHeader: {
-    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   companyName: {
-    fontSize: Typography.sizes.headingSm,
+    fontSize: Typography.sizes.subheading,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
   accountNo: {
     fontSize: Typography.sizes.caption,
-    fontWeight: Typography.weights.semibold,
-    color: Colors.primaryDark,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   balanceCard: {
-    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.danger,
   },
-  balanceLabel: {
+  cardHeaderTitle: {
     fontSize: Typography.sizes.caption,
+    fontWeight: Typography.weights.bold,
     color: Colors.textSecondary,
-    fontWeight: Typography.weights.medium,
+    textTransform: 'uppercase',
     marginBottom: Spacing.xs,
   },
-  termsText: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 4,
-  },
-  creditBarContainer: {
-    marginVertical: Spacing.md,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-  },
-  creditStatsRow: {
+  balanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: Spacing.xs,
+    alignItems: 'center',
   },
-  statLabel: {
+  balanceLabel: {
     fontSize: 11,
     color: Colors.textSecondary,
     marginBottom: 2,
   },
-  actionRowCard: {
-    backgroundColor: Colors.surface,
-    padding: 0,
+  payInvoicesBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: BorderRadius.md,
   },
-  actionItem: {
+  payInvoicesText: {
+    fontSize: Typography.sizes.caption,
+    fontWeight: Typography.weights.bold,
+    color: Colors.primaryDark,
+  },
+  creditCard: {
+    padding: Spacing.md,
+  },
+  creditGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  alignRight: {
+    alignItems: 'flex-end',
+  },
+  creditLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  progressWrapper: {
+    marginTop: Spacing.xs,
+  },
+  menuCard: {
+    padding: 0,
+    overflow: 'hidden',
+  },
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.md,
     gap: Spacing.md,
   },
-  actionIcon: {
-    fontSize: 24,
+  menuIcon: {
+    fontSize: 22,
   },
-  actionTextCol: {
+  menuTextCol: {
     flex: 1,
   },
-  actionTitle: {
-    fontSize: Typography.sizes.body,
+  menuTitle: {
+    fontSize: Typography.sizes.bodySm,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
-  actionSubtitle: {
-    fontSize: Typography.sizes.caption,
+  menuSubtitle: {
+    fontSize: 11,
     color: Colors.textSecondary,
     marginTop: 2,
   },
-  actionChevron: {
-    fontSize: Typography.sizes.bodyLg,
-    color: Colors.primary,
-    fontWeight: Typography.weights.bold,
+  menuArrow: {
+    fontSize: 20,
+    color: Colors.textMuted,
   },
-  divider: {
+  menuDivider: {
     height: 1,
     backgroundColor: Colors.borderLight,
+    marginHorizontal: Spacing.md,
   },
 });

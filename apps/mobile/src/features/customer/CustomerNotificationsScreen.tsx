@@ -5,23 +5,23 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard } from '../../components/common/AppCard';
 import { EmptyState } from '../../components/common/LoadingSkeleton';
 import { notificationApi } from '@ar-multiventures/api';
-import type { NotificationRecord } from '@ar-multiventures/types';
+import type { Notification } from '@ar-multiventures/types';
 
 export function CustomerNotificationsScreen({ onNavigate }: { onNavigate?: (screen: string, params?: any) => void }) {
-  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadNotifications = async () => {
     try {
-      const data = await notificationApi.getNotifications({ unreadOnly });
+      const data = await notificationApi.getNotifications({ isRead: unreadOnly ? false : undefined });
       setNotifications(data);
     } catch (err) {
       console.error('Failed to load notifications:', err);
@@ -39,33 +39,38 @@ export function CustomerNotificationsScreen({ onNavigate }: { onNavigate?: (scre
   };
 
   const handleMarkAllRead = async () => {
-    await notificationApi.markAllAsRead();
     loadNotifications();
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Header Bar */}
-      <View style={styles.topBar}>
-        <View style={styles.filterPills}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setUnreadOnly(false)}
-            style={[styles.pill, !unreadOnly && styles.activePill]}
-          >
-            <Text style={[styles.pillText, !unreadOnly && styles.activePillText]}>All Alerts</Text>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Notifications"
+        subtitle="Real-time Dispatch, Weighbridge & Invoice Alerts"
+        onBack={() => onNavigate?.('tabs')}
+        rightAction={
+          <TouchableOpacity activeOpacity={0.7} onPress={handleMarkAllRead} style={styles.markAllBtn}>
+            <Text style={styles.markAllText}>Mark Read</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setUnreadOnly(true)}
-            style={[styles.pill, unreadOnly && styles.activePill]}
-          >
-            <Text style={[styles.pillText, unreadOnly && styles.activePillText]}>Unread Only</Text>
-          </TouchableOpacity>
-        </View>
+        }
+        showBack={true}
+      />
 
-        <TouchableOpacity activeOpacity={0.7} onPress={handleMarkAllRead} style={styles.markReadBtn}>
-          <Text style={styles.markReadText}>Mark All Read</Text>
+      {/* Filter Tabs */}
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setUnreadOnly(false)}
+          style={[styles.pill, !unreadOnly && styles.activePill]}
+        >
+          <Text style={[styles.pillText, !unreadOnly && styles.activePillText]}>All Alerts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setUnreadOnly(true)}
+          style={[styles.pill, unreadOnly && styles.activePill]}
+        >
+          <Text style={[styles.pillText, unreadOnly && styles.activePillText]}>Unread Only</Text>
         </TouchableOpacity>
       </View>
 
@@ -76,58 +81,52 @@ export function CustomerNotificationsScreen({ onNavigate }: { onNavigate?: (scre
         {notifications.length === 0 ? (
           <EmptyState
             title="No Notifications"
-            description="You are fully caught up with all aggregate orders, dispatch waybills, and payment receipts."
+            description="You are all caught up! Order and delivery updates will appear here."
           />
         ) : (
           notifications.map((n) => (
-            <AppCard
-              key={n.id}
-              style={[styles.notifCard, !n.isRead && styles.unreadCard]}
-              onPress={async () => {
-                if (!n.isRead) {
-                  await notificationApi.markAsRead(n.id);
-                  loadNotifications();
-                }
-                if (n.entityType === 'requisition') onNavigate?.('order_detail', { id: n.entityId });
-                if (n.entityType === 'trip') onNavigate?.('delivery_detail', { tripId: n.entityId });
-              }}
-            >
+            <AppCard key={n.id} style={n.isRead ? styles.notifCard : [styles.notifCard, styles.unreadCard] as any}>
               <View style={styles.notifHeader}>
-                <Text style={styles.notifTitle}>{n.title}</Text>
-                {!n.isRead && <View style={styles.unreadDot} />}
+                <Text style={styles.notifIcon}>
+                  {n.type === 'delivery' ? '🚚' :
+                   n.type === 'payment' ? '💳' :
+                   n.type === 'order' ? '📋' :
+                   n.type === 'alert' ? '⚠️' : '🔔'}
+                </Text>
+                <View style={styles.notifTextCol}>
+                  <View style={styles.titleRow}>
+                    <Text style={[styles.notifTitle, !n.isRead && styles.unreadTitle]}>{n.title}</Text>
+                    {!n.isRead && <View style={styles.unreadDot} />}
+                  </View>
+                  <Text style={styles.notifMessage}>{n.message}</Text>
+                  <Text style={styles.notifTime}>{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                </View>
               </View>
-              <Text style={styles.notifMessage}>{n.message}</Text>
-              <Text style={styles.notifDate}>{n.createdAt}</Text>
             </AppCard>
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },
-  topBar: {
+  filterRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  filterPills: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
+    borderBottomColor: Colors.borderLight,
+    gap: Spacing.sm,
   },
   pill: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.secondaryLight,
   },
@@ -143,27 +142,41 @@ const styles = StyleSheet.create({
     color: Colors.primaryDark,
     fontWeight: Typography.weights.bold,
   },
-  markReadBtn: {
+  markAllBtn: {
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
   },
-  markReadText: {
+  markAllText: {
     fontSize: Typography.sizes.caption,
     fontWeight: Typography.weights.bold,
     color: Colors.primary,
   },
   scrollContent: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxxl * 2,
-    gap: Spacing.sm,
+    paddingBottom: Spacing.xxxl,
+    gap: Spacing.md,
   },
   notifCard: {
-    backgroundColor: Colors.surface,
+    padding: Spacing.md,
   },
   unreadCard: {
+    backgroundColor: '#F0FDF4',
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
   },
   notifHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+  },
+  notifIcon: {
+    fontSize: 24,
+    marginTop: 2,
+  },
+  notifTextCol: {
+    flex: 1,
+  },
+  titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -171,8 +184,12 @@ const styles = StyleSheet.create({
   },
   notifTitle: {
     fontSize: Typography.sizes.bodySm,
-    fontWeight: Typography.weights.bold,
+    fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
+  },
+  unreadTitle: {
+    fontWeight: Typography.weights.bold,
+    color: Colors.primaryDark,
   },
   unreadDot: {
     width: 8,
@@ -183,9 +200,10 @@ const styles = StyleSheet.create({
   notifMessage: {
     fontSize: Typography.sizes.caption,
     color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
+    lineHeight: 18,
+    marginBottom: 4,
   },
-  notifDate: {
+  notifTime: {
     fontSize: 10,
     color: Colors.textMuted,
   },

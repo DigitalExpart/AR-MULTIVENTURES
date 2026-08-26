@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard } from '../../components/common/AppCard';
 import { AppButton } from '../../components/common/AppButton';
 import { TextField } from '../../components/common/TextField';
@@ -87,7 +88,8 @@ export function DriverPodCaptureScreen({
 
   if (isSuccess) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <ScreenHeader title="POD Confirmed" subtitle="Proof of Delivery" showBack={false} />
         <View style={styles.successContainer}>
           <View style={styles.successBadge}>
             <Text style={styles.successBadgeText}>✓</Text>
@@ -103,29 +105,24 @@ export function DriverPodCaptureScreen({
 
           <AppButton
             title="Return to Driver Missions"
-            onPress={() => onNavigate?.('driver_trips')}
+            onPress={() => onNavigate?.('tabs')}
             size="lg"
             fullWidth
             style={styles.returnBtn}
           />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => onNavigate?.('driver_active_trip')}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backBtnText}>← Mission</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Capture Digital POD</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Capture Digital POD"
+        subtitle="Site Engineer Signature & Offload Evidence"
+        onBack={() => onNavigate?.('driver_active_trip')}
+        showBack={true}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Offline Warning Banner */}
@@ -214,12 +211,16 @@ export function DriverPodCaptureScreen({
           />
         </AppCard>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },

@@ -5,10 +5,10 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard } from '../../components/common/AppCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { MoneyText } from '../../components/common/MoneyText';
@@ -40,7 +40,14 @@ export function CustomerInvoicesScreen({ onNavigate }: { onNavigate?: (screen: s
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Invoices & Settlement"
+        subtitle="Commercial Proforma & Tax Invoices"
+        onBack={() => onNavigate?.('tabs')}
+        showBack={true}
+      />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
@@ -59,59 +66,70 @@ export function CustomerInvoicesScreen({ onNavigate }: { onNavigate?: (screen: s
             >
               <View style={styles.cardHeader}>
                 <View>
-                  <Text style={styles.invNumber}>{inv.invoiceNumber}</Text>
-                  <Text style={styles.dateText}>Issued: {inv.issueDate} • Due: {inv.dueDate}</Text>
+                  <Text style={styles.invoiceNum}>{inv.invoiceNumber}</Text>
+                  <Text style={styles.dateText}>
+                    Issued: {inv.issueDate} • Due: {inv.dueDate}
+                  </Text>
                 </View>
-                <StatusBadge status={inv.status} size="sm" />
+                <StatusBadge status={inv.status} />
               </View>
 
-              <View style={styles.cardAmounts}>
+              <View style={styles.divider} />
+
+              <View style={styles.amountGrid}>
                 <View>
-                  <Text style={styles.amountLabel}>Total Due</Text>
-                  <MoneyText amount={inv.totalAmount} size="md" color={Colors.primaryDark} />
+                  <Text style={styles.label}>Total Due</Text>
+                  <MoneyText amount={inv.totalAmount} size="md" weight="bold" color={Colors.primary} />
                 </View>
-                <View style={styles.paidCol}>
-                  <Text style={styles.amountLabel}>Paid</Text>
-                  <MoneyText amount={inv.amountPaid} size="sm" color={Colors.success} />
+                <View style={styles.alignRight}>
+                  <Text style={styles.label}>Paid</Text>
+                  <MoneyText amount={inv.paidAmount} size="md" color={Colors.textPrimary} />
                 </View>
               </View>
 
               {inv.status !== 'PAID' && (
-                <View style={styles.cardActionRow}>
-                  <Text style={styles.payPromptText}>Outstanding: ₦{(inv.totalAmount - inv.amountPaid).toLocaleString()}</Text>
-                  <Text style={styles.payCtaText}>Pay Now →</Text>
+                <View style={styles.outstandingRow}>
+                  <Text style={styles.outstandingLabel}>
+                    Outstanding: ₦{(inv.totalAmount - inv.paidAmount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => onNavigate?.('payments', { invoiceId: inv.id })}
+                    style={styles.payBtn}
+                  >
+                    <Text style={styles.payBtnText}>Pay Now →</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </AppCard>
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },
   scrollContent: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxxl * 2,
+    paddingBottom: Spacing.xxxl,
     gap: Spacing.md,
   },
   invoiceCard: {
-    backgroundColor: Colors.surface,
+    padding: Spacing.md,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
   },
-  invNumber: {
+  invoiceNum: {
     fontSize: Typography.sizes.body,
-    fontWeight: Typography.weights.bold,
+    fontWeight: Typography.weights.heavy,
     color: Colors.textPrimary,
   },
   dateText: {
@@ -119,38 +137,46 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 2,
   },
-  cardAmounts: {
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.md,
+  },
+  amountGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.borderLight,
-    marginVertical: Spacing.xs,
   },
-  amountLabel: {
-    fontSize: 11,
+  alignRight: {
+    alignItems: 'flex-end',
+  },
+  label: {
+    fontSize: Typography.sizes.caption,
     color: Colors.textSecondary,
     marginBottom: 2,
   },
-  paidCol: {
-    alignItems: 'flex-end',
-  },
-  cardActionRow: {
+  outstandingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Spacing.xs,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
   },
-  payPromptText: {
-    fontSize: Typography.sizes.caption,
-    fontWeight: Typography.weights.semibold,
-    color: Colors.danger,
-  },
-  payCtaText: {
+  outstandingLabel: {
     fontSize: Typography.sizes.caption,
     fontWeight: Typography.weights.bold,
-    color: Colors.primary,
+    color: Colors.danger,
+  },
+  payBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryLight,
+  },
+  payBtnText: {
+    fontSize: Typography.sizes.caption,
+    fontWeight: Typography.weights.bold,
+    color: Colors.primaryDark,
   },
 });

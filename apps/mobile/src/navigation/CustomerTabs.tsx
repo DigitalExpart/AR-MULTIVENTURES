@@ -4,16 +4,19 @@ import { Colors, Spacing, Typography, Shadows } from '../theme';
 import { CustomerHomeScreen } from '../features/customer/CustomerHomeScreen';
 import { CustomerOrdersListScreen } from '../features/customer/CustomerOrdersListScreen';
 import { CustomerDeliveriesScreen } from '../features/customer/CustomerDeliveriesScreen';
+import { CustomerInvoicesScreen } from '../features/customer/CustomerInvoicesScreen';
 import { CustomerAccountScreen } from '../features/customer/CustomerAccountScreen';
 
-export type CustomerTabKey = 'home' | 'orders' | 'deliveries' | 'account';
+export type CustomerTabKey = 'home' | 'orders' | 'invoices' | 'deliveries' | 'account';
 
 export function CustomerTabs({
   onNavigateScreen,
+  initialTab = 'home',
 }: {
   onNavigateScreen: (screen: string, params?: any) => void;
+  initialTab?: CustomerTabKey;
 }) {
-  const [currentTab, setCurrentTab] = useState<CustomerTabKey>('home');
+  const [currentTab, setCurrentTab] = useState<CustomerTabKey>(initialTab);
 
   const renderTabContent = () => {
     switch (currentTab) {
@@ -21,6 +24,8 @@ export function CustomerTabs({
         return <CustomerHomeScreen onNavigate={onNavigateScreen} />;
       case 'orders':
         return <CustomerOrdersListScreen onNavigate={onNavigateScreen} />;
+      case 'invoices':
+        return <CustomerInvoicesScreen onNavigate={onNavigateScreen} />;
       case 'deliveries':
         return <CustomerDeliveriesScreen onNavigate={onNavigateScreen} />;
       case 'account':
@@ -32,7 +37,7 @@ export function CustomerTabs({
     <View style={styles.container}>
       <View style={styles.content}>{renderTabContent()}</View>
 
-      {/* Bottom Tab Bar */}
+      {/* Persistent Bottom Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity
           activeOpacity={0.7}
@@ -68,12 +73,23 @@ export function CustomerTabs({
 
         <TouchableOpacity
           activeOpacity={0.7}
+          onPress={() => setCurrentTab('invoices')}
+          style={styles.tabItem}
+        >
+          <Text style={styles.tabIcon}>💳</Text>
+          <Text style={[styles.tabLabel, currentTab === 'invoices' && styles.activeTabLabel]}>
+            Invoices
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.7}
           onPress={() => setCurrentTab('deliveries')}
           style={styles.tabItem}
         >
-          <Text style={styles.tabIcon}>🚛</Text>
+          <Text style={styles.tabIcon}>🚚</Text>
           <Text style={[styles.tabLabel, currentTab === 'deliveries' && styles.activeTabLabel]}>
-            Deliveries
+            Delivery
           </Text>
         </TouchableOpacity>
 
@@ -115,13 +131,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.xs,
-    minWidth: 60,
+    minWidth: 50,
   },
   tabIcon: {
-    fontSize: 20,
+    fontSize: 18,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: Typography.weights.semibold,
     color: Colors.textSecondary,
     marginTop: 2,
@@ -132,24 +148,24 @@ const styles = StyleSheet.create({
   },
   floatingOrderBtn: {
     backgroundColor: Colors.primary,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -16,
     ...Shadows.lg,
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderColor: '#FFFFFF',
   },
   floatingIcon: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: Typography.weights.heavy,
     color: '#FFFFFF',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   floatingText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: Typography.weights.heavy,
     color: '#FFFFFF',
     marginTop: -2,

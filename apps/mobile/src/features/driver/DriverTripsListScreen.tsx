@@ -5,10 +5,10 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard } from '../../components/common/AppCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { EmptyState } from '../../components/common/LoadingSkeleton';
@@ -46,7 +46,13 @@ export function DriverTripsListScreen({ onNavigate }: { onNavigate?: (screen: st
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Driver Missions"
+        subtitle="Assigned Delivery Waybills & Status"
+        showBack={false}
+      />
+
       <View style={styles.tabHeader}>
         {(['ACTIVE', 'COMPLETED', 'ALL'] as const).map((tab) => (
           <TouchableOpacity
@@ -69,54 +75,55 @@ export function DriverTripsListScreen({ onNavigate }: { onNavigate?: (screen: st
         {filteredTrips.length === 0 ? (
           <EmptyState
             title="No Missions Found"
-            description="You don't have any delivery missions in this queue."
+            description="You have no assigned hauling trips in this filter tab."
           />
         ) : (
-          filteredTrips.map((trip) => (
+          filteredTrips.map((t) => (
             <AppCard
-              key={trip.id}
-              onPress={() => onNavigate?.('driver_active_trip', { tripId: trip.id })}
-              style={styles.tripCard}
+              key={t.id}
+              onPress={() => onNavigate?.('driver_active_trip', { tripId: t.id })}
+              style={styles.missionCard}
             >
               <View style={styles.cardHeader}>
-                <Text style={styles.tripNo}>{trip.tripNumber}</Text>
-                <StatusBadge status={trip.status} size="sm" />
+                <Text style={styles.tripNumber}>{t.tripNumber}</Text>
+                <StatusBadge status={t.status} size="sm" />
               </View>
 
-              <Text style={styles.materialName}>{trip.materialName}</Text>
-              <Text style={styles.destName}>{trip.destinationName}</Text>
+              <Text style={styles.materialName}>{t.materialName}</Text>
+              <Text style={styles.destName}>{t.destinationName}</Text>
 
               <View style={styles.cardFooter}>
-                <Text style={styles.tonnesText}>
-                  {trip.weighbridge?.netWeightTonnes || trip.plannedQuantityTonnes} Tonnes
-                </Text>
-                <Text style={styles.actionText}>View Mission Steps →</Text>
+                <Text style={styles.tonnesBadge}>{t.plannedQuantityTonnes} Tonnes</Text>
+                <Text style={styles.viewAction}>Open Waybill →</Text>
               </View>
             </AppCard>
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },
   tabHeader: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    padding: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+    gap: Spacing.sm,
   },
   tabBtn: {
     flex: 1,
     paddingVertical: Spacing.sm,
     alignItems: 'center',
     borderRadius: BorderRadius.md,
+    backgroundColor: Colors.secondaryLight,
   },
   activeTabBtn: {
     backgroundColor: Colors.primaryLight,
@@ -135,8 +142,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxxl * 2,
     gap: Spacing.md,
   },
-  tripCard: {
-    backgroundColor: Colors.surface,
+  missionCard: {
+    padding: Spacing.md,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -144,7 +151,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xs,
   },
-  tripNo: {
+  tripNumber: {
     fontSize: Typography.sizes.body,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
@@ -153,6 +160,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.bodySm,
     fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
+    marginTop: 2,
   },
   destName: {
     fontSize: Typography.sizes.caption,
@@ -164,16 +172,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Spacing.xs,
+    paddingTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.borderLight,
   },
-  tonnesText: {
+  tonnesBadge: {
     fontSize: Typography.sizes.caption,
     fontWeight: Typography.weights.bold,
     color: Colors.primaryDark,
   },
-  actionText: {
+  viewAction: {
     fontSize: Typography.sizes.caption,
     fontWeight: Typography.weights.bold,
     color: Colors.primary,

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard, SectionHeader } from '../../components/common/AppCard';
 import { AppButton } from '../../components/common/AppButton';
 import { TextField } from '../../components/common/TextField';
@@ -104,7 +105,14 @@ export function CustomerPaymentsScreen({
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Commercial Settlement"
+        subtitle="Paystack Card & Bank Wire Settlement"
+        onBack={() => onNavigate?.('tabs')}
+        showBack={true}
+      />
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Selected Invoice Payment Card */}
         {selectedInvoice && selectedInvoice.status !== 'PAID' && (
@@ -234,12 +242,16 @@ export function CustomerPaymentsScreen({
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },

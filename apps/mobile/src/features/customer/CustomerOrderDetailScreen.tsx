@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard, SectionHeader } from '../../components/common/AppCard';
 import { AppButton } from '../../components/common/AppButton';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -54,18 +55,14 @@ export function CustomerOrderDetailScreen({
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => onNavigate?.('orders')}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backBtnText}>← Orders</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{requisition.requisitionNumber}</Text>
-        <StatusBadge status={requisition.status} size="sm" />
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader
+        title={requisition.requisitionNumber}
+        subtitle="Order Summary & Real-time Fulfillment"
+        onBack={() => onNavigate?.('tabs')}
+        rightAction={<StatusBadge status={requisition.status} size="sm" />}
+        showBack={true}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Order Fulfillment Hero Card */}
@@ -160,12 +157,16 @@ export function CustomerOrderDetailScreen({
           )}
         </AppCard>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },

@@ -5,10 +5,10 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard, SectionHeader } from '../../components/common/AppCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { ProgressBar } from '../../components/common/ProgressBar';
@@ -46,7 +46,13 @@ export function CustomerDeliveriesScreen({ onNavigate }: { onNavigate?: (screen:
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Delivery Tracking"
+        subtitle="Active Fleet Dispatches & Digital Scale Tickets"
+        showBack={false}
+      />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
@@ -59,7 +65,7 @@ export function CustomerDeliveriesScreen({ onNavigate }: { onNavigate?: (screen:
                 <Text style={styles.fulRef}>{fulfillment.referenceNumber}</Text>
                 <Text style={styles.fulDest}>{fulfillment.destinationName}</Text>
               </View>
-              <StatusBadge status={fulfillment.status} size="sm" />
+              <StatusBadge status={fulfillment.fulfillmentPercent === 100 ? 'DELIVERED' : 'IN_TRANSIT'} size="sm" />
             </View>
 
             <ProgressBar
@@ -69,29 +75,28 @@ export function CustomerDeliveriesScreen({ onNavigate }: { onNavigate?: (screen:
             />
 
             <View style={styles.statsRow}>
-              <View style={styles.statCol}>
+              <View style={styles.statBox}>
                 <Text style={styles.statVal}>{fulfillment.deliveredQuantity}T</Text>
                 <Text style={styles.statLbl}>Delivered</Text>
               </View>
-              <View style={styles.statCol}>
+              <View style={styles.statBox}>
                 <Text style={styles.statVal}>{fulfillment.dispatchedQuantity}T</Text>
                 <Text style={styles.statLbl}>In Transit</Text>
               </View>
-              <View style={styles.statCol}>
-                <Text style={styles.statVal}>{fulfillment.remainingQuantity}T</Text>
+              <View style={styles.statBox}>
+                <Text style={styles.statVal}>{(fulfillment as any).remainingQuantity ?? fulfillment.orderedQuantity - fulfillment.deliveredQuantity}T</Text>
                 <Text style={styles.statLbl}>Remaining</Text>
               </View>
             </View>
           </AppCard>
         )}
 
-        {/* Trips List */}
-        <SectionHeader title="Operational Trips" subtitle="Live dispatch, transit & verified deliveries" />
+        <SectionHeader title="Active Delivery Trips & Waybills" />
 
         {trips.length === 0 ? (
           <EmptyState
-            title="No Active Trips"
-            description="Your scheduled delivery trips will appear here once trucks are assigned."
+            title="No Active Delivery Trips"
+            description="When your orders are loaded at the quarry and dispatched, real-time waybills will appear here."
           />
         ) : (
           trips.map((trip) => (
@@ -103,56 +108,61 @@ export function CustomerDeliveriesScreen({ onNavigate }: { onNavigate?: (screen:
               <View style={styles.tripHeader}>
                 <View>
                   <Text style={styles.tripNumber}>{trip.tripNumber}</Text>
-                  <Text style={styles.truckText}>🚛 {trip.truckRegistration || 'Heavy Tipper 30T'}</Text>
+                  <Text style={styles.truckText}>
+                    🚛 {(trip as any).truck?.registrationNumber || trip.truckId || 'Sinotruk HOWO 371'}
+                  </Text>
                 </View>
-                <StatusBadge status={trip.status} size="sm" />
+                <StatusBadge status={trip.status} />
               </View>
 
-              <View style={styles.tripBody}>
-                <Text style={styles.driverText}>Driver: {trip.driverName || 'Assigned Driver'}</Text>
-                <Text style={styles.siteText}>Destination: {trip.destinationName}</Text>
-              </View>
+              <View style={styles.tripDivider} />
 
-              <View style={styles.tripFooter}>
-                <Text style={styles.weightText}>
-                  Scale Net: {trip.weighbridge?.netWeightTonnes || trip.plannedQuantityTonnes} Tonnes
-                </Text>
-                {trip.pod ? (
-                  <Text style={styles.podBadge}>✓ Signed POD Available</Text>
-                ) : (
-                  <Text style={styles.trackingText}>Operational Tracking →</Text>
-                )}
+              <View style={styles.tripDetails}>
+                <View>
+                  <Text style={styles.tripLabel}>Driver</Text>
+                  <Text style={styles.tripVal}>{(trip as any).driver?.fullName || trip.driverId || 'Ibrahim Musa'}</Text>
+                </View>
+                <View style={styles.alignRight}>
+                  <Text style={styles.tripLabel}>Weighbridge Net</Text>
+                  <QuantityText
+                    tonnes={(trip as any).weighbridgeTicket?.netWeightTonnes || (trip as any).plannedTonnage || 30}
+                    size="sm"
+                  />
+                </View>
               </View>
             </AppCard>
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xxxl * 2,
+    gap: Spacing.md,
   },
   fulfillmentCard: {
-    marginBottom: Spacing.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+    padding: Spacing.md,
   },
   fulHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   fulRef: {
-    fontSize: Typography.sizes.bodyLg,
-    fontWeight: Typography.weights.bold,
+    fontSize: Typography.sizes.body,
+    fontWeight: Typography.weights.heavy,
     color: Colors.textPrimary,
   },
   fulDest: {
@@ -164,15 +174,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: Spacing.md,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    backgroundColor: Colors.secondaryLight,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
   },
-  statCol: {
+  statBox: {
     alignItems: 'center',
   },
   statVal: {
-    fontSize: Typography.sizes.caption,
+    fontSize: Typography.sizes.bodySm,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
@@ -182,13 +192,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   tripCard: {
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
   },
   tripHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
+    alignItems: 'flex-start',
   },
   tripNumber: {
     fontSize: Typography.sizes.body,
@@ -201,40 +210,38 @@ const styles = StyleSheet.create({
     color: Colors.primaryDark,
     marginTop: 2,
   },
-  tripBody: {
-    marginVertical: Spacing.xs,
+  tripDivider: {
+    height: 1,
+    backgroundColor: Colors.borderLight,
+    marginVertical: Spacing.sm,
   },
-  driverText: {
-    fontSize: Typography.sizes.caption,
-    color: Colors.textPrimary,
-  },
-  siteText: {
-    fontSize: Typography.sizes.caption,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  tripFooter: {
+  tripDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-    marginTop: Spacing.xs,
   },
-  weightText: {
-    fontSize: Typography.sizes.caption,
-    fontWeight: Typography.weights.bold,
-    color: Colors.secondaryDark,
+  alignRight: {
+    alignItems: 'flex-end',
   },
-  podBadge: {
-    fontSize: Typography.sizes.caption,
-    fontWeight: Typography.weights.bold,
-    color: Colors.success,
+  tripLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
   },
-  trackingText: {
-    fontSize: Typography.sizes.caption,
-    fontWeight: Typography.weights.bold,
-    color: Colors.primary,
+  tripVal: {
+    fontSize: Typography.sizes.bodySm,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.textPrimary,
+    marginTop: 2,
+  },
+  ticketBadge: {
+    backgroundColor: Colors.infoLight,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.sm,
+  },
+  ticketText: {
+    fontSize: 10,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.info,
   },
 });

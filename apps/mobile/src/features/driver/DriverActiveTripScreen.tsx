@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard } from '../../components/common/AppCard';
 import { AppButton } from '../../components/common/AppButton';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -137,18 +138,14 @@ export function DriverActiveTripScreen({
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => onNavigate?.('driver_trips')}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backBtnText}>← All Trips</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{trip.tripNumber}</Text>
-        <StatusBadge status={trip.status} size="sm" />
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader
+        title={trip.tripNumber}
+        subtitle="Driver Mission Progression"
+        onBack={() => onNavigate?.('tabs')}
+        rightAction={<StatusBadge status={trip.status} size="sm" />}
+        showBack={true}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Giant Glove-Friendly Action Banner */}
@@ -218,12 +215,16 @@ export function DriverActiveTripScreen({
           )}
         </AppCard>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },

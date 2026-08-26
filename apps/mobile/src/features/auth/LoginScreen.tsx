@@ -5,17 +5,27 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme';
 import { TextField } from '../../components/common/TextField';
 import { AppButton } from '../../components/common/AppButton';
 import { DevDataBadge } from '../../components/common/DevDataBadge';
 import { useAuth } from '../../services/authStore';
 
-export function LoginScreen({ navigation }: { navigation?: any }) {
+interface LoginScreenProps {
+  onSignUp?: () => void;
+  onForgotPassword?: () => void;
+  onBack?: () => void;
+}
+
+export function LoginScreen({
+  onSignUp,
+  onForgotPassword,
+  onBack,
+}: LoginScreenProps) {
   const { login, isDataProviderMock } = useAuth();
   const [email, setEmail] = useState('procurement@buildcorp.ng');
   const [password, setPassword] = useState('password123');
@@ -45,13 +55,27 @@ export function LoginScreen({ navigation }: { navigation?: any }) {
     setRole('DRIVER');
   };
 
+  const topPadding = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 28) + 12;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: topPadding }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Top Nav Row */}
+          {onBack && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={onBack}
+              style={styles.backBtn}
+            >
+              <Text style={styles.backBtnText}>← Welcome</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Header Banner */}
           <View style={styles.header}>
             <View style={styles.brandRow}>
@@ -68,9 +92,9 @@ export function LoginScreen({ navigation }: { navigation?: any }) {
 
           {/* Form Card */}
           <View style={styles.card}>
-            <Text style={styles.welcomeText}>Welcome Back</Text>
+            <Text style={styles.welcomeText}>Sign In to Account</Text>
             <Text style={styles.instructionText}>
-              Sign in to manage requisitions, track aggregate deliveries, or execute driver missions.
+              Select your role and enter credentials to access orders, dispatch tracking, or driver missions.
             </Text>
 
             {/* Role Tab Selector */}
@@ -97,7 +121,7 @@ export function LoginScreen({ navigation }: { navigation?: any }) {
 
             {error && (
               <View style={styles.errorBox}>
-                <Text style={styles.errorBoxText}>{error}</Text>
+                <Text style={styles.errorBoxText}>⚠️ {error}</Text>
               </View>
             )}
 
@@ -120,6 +144,17 @@ export function LoginScreen({ navigation }: { navigation?: any }) {
               required
             />
 
+            {/* Forgot Password Link */}
+            {onForgotPassword && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={onForgotPassword}
+                style={styles.forgotPasswordRow}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+            )}
+
             <AppButton
               title={isLoading ? 'Signing In...' : `Sign In as ${role === 'CUSTOMER' ? 'Customer' : 'Driver'}`}
               onPress={handleLogin}
@@ -128,6 +163,20 @@ export function LoginScreen({ navigation }: { navigation?: any }) {
               fullWidth
               style={styles.signInBtn}
             />
+
+            {/* Sign Up Link */}
+            {onSignUp && role === 'CUSTOMER' && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={onSignUp}
+                style={styles.signUpLink}
+              >
+                <Text style={styles.signUpLinkText}>
+                  Don't have a business account?{' '}
+                  <Text style={styles.signUpLinkBold}>Register Company</Text>
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* Quick Demo Credentials ONLY in Mock Mode */}
             {isDataProviderMock && (
@@ -154,7 +203,7 @@ export function LoginScreen({ navigation }: { navigation?: any }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -167,13 +216,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.xl,
-    justifyContent: 'center',
-    minHeight: '100%',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xxxl,
+  },
+  backBtn: {
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  backBtnText: {
+    fontSize: Typography.sizes.bodySm,
+    fontWeight: Typography.weights.bold,
+    color: Colors.primary,
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     gap: Spacing.sm,
   },
   brandRow: {
@@ -198,37 +256,38 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.subheading,
     fontWeight: Typography.weights.heavy,
     color: Colors.textPrimary,
-    letterSpacing: 0.5,
   },
   brandSubtitle: {
     fontSize: Typography.sizes.caption,
-    fontWeight: Typography.weights.semibold,
     color: Colors.textSecondary,
+    fontWeight: Typography.weights.medium,
   },
   card: {
     backgroundColor: Colors.surface,
-    padding: Spacing.xl,
     borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    padding: Spacing.xl,
+    ...Shadows.md,
   },
   welcomeText: {
-    fontSize: Typography.sizes.heading,
+    fontSize: Typography.sizes.headingSm,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   instructionText: {
     fontSize: Typography.sizes.bodySm,
     color: Colors.textSecondary,
-    marginTop: Spacing.xs,
     marginBottom: Spacing.lg,
+    lineHeight: 18,
   },
   roleSelector: {
     flexDirection: 'row',
-    backgroundColor: Colors.secondaryLight,
-    padding: 4,
+    backgroundColor: Colors.background,
     borderRadius: BorderRadius.md,
+    padding: Spacing.xs,
     marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   roleTab: {
     flex: 1,
@@ -238,10 +297,7 @@ const styles = StyleSheet.create({
   },
   activeRoleTab: {
     backgroundColor: Colors.surface,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...Shadows.sm,
   },
   roleTabText: {
     fontSize: Typography.sizes.bodySm,
@@ -253,22 +309,48 @@ const styles = StyleSheet.create({
     fontWeight: Typography.weights.bold,
   },
   errorBox: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: Colors.dangerLight,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.danger,
   },
   errorBoxText: {
     color: Colors.danger,
     fontSize: Typography.sizes.caption,
-    fontWeight: Typography.weights.semibold,
+    fontWeight: Typography.weights.bold,
+  },
+  forgotPasswordRow: {
+    alignSelf: 'flex-end',
+    marginBottom: Spacing.md,
+    marginTop: -Spacing.xs,
+    paddingVertical: Spacing.xs,
+  },
+  forgotPasswordText: {
+    fontSize: Typography.sizes.caption,
+    fontWeight: Typography.weights.bold,
+    color: Colors.primary,
   },
   signInBtn: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  signUpLink: {
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.xs,
+  },
+  signUpLinkText: {
+    fontSize: Typography.sizes.bodySm,
+    color: Colors.textSecondary,
+  },
+  signUpLinkBold: {
+    fontWeight: Typography.weights.bold,
+    color: Colors.primary,
   },
   demoSection: {
     marginTop: Spacing.xl,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     alignItems: 'center',
@@ -282,21 +364,21 @@ const styles = StyleSheet.create({
   },
   demoButtonsRow: {
     flexDirection: 'row',
+    gap: Spacing.sm,
     flexWrap: 'wrap',
-    gap: Spacing.xs,
     justifyContent: 'center',
   },
   demoPill: {
-    backgroundColor: Colors.secondaryLight,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#C8E6C9',
   },
   demoPillText: {
-    fontSize: Typography.sizes.caption,
-    color: Colors.textSecondary,
-    fontWeight: Typography.weights.medium,
+    fontSize: 11,
+    fontWeight: Typography.weights.bold,
+    color: Colors.primaryDark,
   },
 });

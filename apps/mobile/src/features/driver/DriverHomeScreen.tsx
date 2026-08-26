@@ -5,7 +5,8 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
+  Platform,
+  StatusBar,
   RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme';
@@ -44,8 +45,11 @@ export function DriverHomeScreen({ onNavigate }: { onNavigate?: (screen: string,
     setRefreshing(false);
   };
 
+  const topPadding = Platform.OS === 'ios' ? 48 : (StatusBar.currentHeight || 28) + 8;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: topPadding }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <OfflineBanner />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -159,7 +163,7 @@ export function DriverHomeScreen({ onNavigate }: { onNavigate?: (screen: string,
           </AppCard>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -5,7 +5,8 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
+  Platform,
+  StatusBar,
   RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme';
@@ -53,32 +54,52 @@ export function CustomerHomeScreen({ onNavigate }: { onNavigate?: (screen: strin
     setRefreshing(false);
   };
 
+  const topPadding = Platform.OS === 'ios' ? 48 : (StatusBar.currentHeight || 28) + 8;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: topPadding }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <OfflineBanner />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
       >
-        {/* Top Greeting & Brand Header */}
+        {/* Top Greeting & Quick Nav Row */}
         <View style={styles.topHeader}>
-          <View>
-            <Text style={styles.greetingText}>Good morning,</Text>
+          <View style={styles.greetingCol}>
+            <Text style={styles.greetingText}>Good day,</Text>
             <Text style={styles.userNameText}>{user?.firstName || 'Customer'} {user?.lastName || ''}</Text>
             <Text style={styles.companyText}>{user?.companyName || 'BuildCorp Nigeria Limited'}</Text>
           </View>
-          <View style={styles.headerBadges}>
-            <DevDataBadge />
-            {process.env.EXPO_PUBLIC_DATA_PROVIDER !== 'supabase' && (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => switchRole('DRIVER')}
-                style={styles.switchRolePill}
-              >
-                <Text style={styles.switchRoleText}>Switch to Driver 🚛</Text>
-              </TouchableOpacity>
-            )}
+          <View style={styles.headerActionRow}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => onNavigate?.('notifications')}
+              style={styles.headerIconBtn}
+            >
+              <Text style={styles.headerIconText}>🔔</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => onNavigate?.('profile')}
+              style={styles.headerIconBtn}
+            >
+              <Text style={styles.headerIconText}>👤</Text>
+            </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={styles.badgeRow}>
+          <DevDataBadge />
+          {process.env.EXPO_PUBLIC_DATA_PROVIDER !== 'supabase' && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => switchRole('DRIVER')}
+              style={styles.switchRolePill}
+            >
+              <Text style={styles.switchRoleText}>Switch to Driver 🚛</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Primary CTA: New Requisition */}
@@ -189,7 +210,7 @@ export function CustomerHomeScreen({ onNavigate }: { onNavigate?: (screen: strin
           ))}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -204,7 +225,35 @@ const styles = StyleSheet.create({
   },
   topHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  greetingCol: {
+    flex: 1,
+  },
+  headerActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  headerIconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadows.sm,
+  },
+  headerIconText: {
+    fontSize: 18,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.lg,
   },

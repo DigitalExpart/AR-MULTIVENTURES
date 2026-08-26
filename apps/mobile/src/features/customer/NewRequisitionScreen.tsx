@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard } from '../../components/common/AppCard';
 import { AppButton } from '../../components/common/AppButton';
 import { TextField } from '../../components/common/TextField';
@@ -169,18 +170,22 @@ export function NewRequisitionScreen({ onNavigate }: { onNavigate?: (screen: str
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => (step > 1 ? setStep(step - 1) : onNavigate?.('home'))}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backBtnText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Requisition</Text>
-        <Text style={styles.stepBadge}>Step {step} of {totalSteps}</Text>
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="New Requisition"
+        subtitle={`Step ${step} of ${totalSteps} — ${
+          step === 1 ? 'Select Quarry' :
+          step === 2 ? 'Select Material' :
+          step === 3 ? 'Order Quantity' :
+          step === 4 ? 'Transportation' :
+          step === 5 ? 'Truck Preference' :
+          step === 6 ? 'Destination Site' :
+          step === 7 ? 'Schedule & Notes' : 'Price Review'
+        }`}
+        onBack={() => (step > 1 ? setStep(step - 1) : onNavigate?.('tabs'))}
+        rightAction={<Text style={styles.stepBadge}>{step}/{totalSteps}</Text>}
+        showBack={true}
+      />
 
       <ProgressBar progress={step / totalSteps} style={styles.topProgressBar} />
 
@@ -508,12 +513,16 @@ export function NewRequisitionScreen({ onNavigate }: { onNavigate?: (screen: str
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },

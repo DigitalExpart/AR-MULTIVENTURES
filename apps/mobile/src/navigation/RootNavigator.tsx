@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Colors } from '../theme';
 import { useAuth } from '../services/authStore';
+
+// Auth Screens
+import { SplashScreen } from '../features/auth/SplashScreen';
 import { LoginScreen } from '../features/auth/LoginScreen';
+import { SignUpScreen } from '../features/auth/SignUpScreen';
+import { ForgotPasswordScreen } from '../features/auth/ForgotPasswordScreen';
+
+// Tab Navigators
 import { CustomerTabs } from './CustomerTabs';
 import { DriverTabs } from './DriverTabs';
 
@@ -19,8 +26,15 @@ import { CustomerProfileScreen } from '../features/customer/CustomerProfileScree
 import { DriverActiveTripScreen } from '../features/driver/DriverActiveTripScreen';
 import { DriverPodCaptureScreen } from '../features/driver/DriverPodCaptureScreen';
 
+type AuthScreen = 'splash' | 'login' | 'signup' | 'forgot_password';
+
 export function RootNavigator() {
   const { isAuthenticated, activeRole } = useAuth();
+
+  // Auth flow state
+  const [authScreen, setAuthScreen] = useState<AuthScreen>('splash');
+
+  // Authenticated screen state
   const [currentScreen, setCurrentScreen] = useState<string>('tabs');
   const [screenParams, setScreenParams] = useState<any>(null);
 
@@ -29,11 +43,41 @@ export function RootNavigator() {
     setScreenParams(params || null);
   };
 
+  // ─── UNAUTHENTICATED FLOW ─────────────────────────────────────────────────
   if (!isAuthenticated) {
-    return <LoginScreen />;
+    switch (authScreen) {
+      case 'splash':
+        return (
+          <SplashScreen
+            onGetStarted={() => setAuthScreen('signup')}
+            onSignIn={() => setAuthScreen('login')}
+          />
+        );
+      case 'login':
+        return (
+          <LoginScreen
+            onSignUp={() => setAuthScreen('signup')}
+            onForgotPassword={() => setAuthScreen('forgot_password')}
+            onBack={() => setAuthScreen('splash')}
+          />
+        );
+      case 'signup':
+        return (
+          <SignUpScreen
+            onSignIn={() => setAuthScreen('login')}
+            onBack={() => setAuthScreen('splash')}
+          />
+        );
+      case 'forgot_password':
+        return (
+          <ForgotPasswordScreen
+            onBack={() => setAuthScreen('login')}
+          />
+        );
+    }
   }
 
-  // Active Customer Mode
+  // ─── CUSTOMER AUTHENTICATED FLOW ─────────────────────────────────────────
   if (activeRole === 'CUSTOMER') {
     switch (currentScreen) {
       case 'new_requisition':
@@ -56,7 +100,7 @@ export function RootNavigator() {
     }
   }
 
-  // Active Driver Mode
+  // ─── DRIVER AUTHENTICATED FLOW ────────────────────────────────────────────
   if (activeRole === 'DRIVER') {
     switch (currentScreen) {
       case 'driver_active_trip':

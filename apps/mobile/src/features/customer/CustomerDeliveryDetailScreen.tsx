@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard } from '../../components/common/AppCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { deliveryApi } from '@ar-multiventures/api';
@@ -37,27 +38,23 @@ export function CustomerDeliveryDetailScreen({
 
   if (!trip) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading delivery trip tracking...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => onNavigate?.('deliveries')}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backBtnText}>← Deliveries</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{trip.tripNumber}</Text>
-        <StatusBadge status={trip.status} size="sm" />
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader
+        title={trip.tripNumber}
+        subtitle="Haulage Transit & POD Inspection"
+        onBack={() => onNavigate?.('tabs')}
+        rightAction={<StatusBadge status={trip.status} size="sm" />}
+        showBack={true}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Mission Summary Card */}
@@ -162,12 +159,16 @@ export function CustomerDeliveryDetailScreen({
           </AppCard>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },

@@ -5,10 +5,10 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard } from '../../components/common/AppCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { MoneyText, QuantityText } from '../../components/common/MoneyText';
@@ -47,7 +47,22 @@ export function CustomerOrdersListScreen({ onNavigate }: { onNavigate?: (screen:
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Granite Orders"
+        subtitle="Customer Requisitions & Tracking"
+        showBack={false}
+        rightAction={
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => onNavigate?.('new_requisition')}
+            style={styles.newOrderBtn}
+          >
+            <Text style={styles.newOrderText}>+ New</Text>
+          </TouchableOpacity>
+        }
+      />
+
       {/* Tab Filter Header */}
       <View style={styles.tabHeader}>
         {(['ACTIVE', 'COMPLETED', 'ALL'] as const).map((tab) => (
@@ -58,7 +73,7 @@ export function CustomerOrdersListScreen({ onNavigate }: { onNavigate?: (screen:
             style={[styles.tabBtn, activeTab === tab && styles.activeTabBtn]}
           >
             <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-              {tab === 'ACTIVE' ? 'Active Orders' : tab === 'COMPLETED' ? 'Completed' : 'All Orders'}
+              {tab === 'ACTIVE' ? 'Active Orders' : tab === 'COMPLETED' ? 'Delivered' : 'All Orders'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -70,10 +85,8 @@ export function CustomerOrdersListScreen({ onNavigate }: { onNavigate?: (screen:
       >
         {filteredRequisitions.length === 0 ? (
           <EmptyState
-            title="No Orders Found"
-            description="You don't have any orders matching this category yet."
-            actionTitle="Place New Requisition"
-            onAction={() => onNavigate?.('new_requisition')}
+            title="No Requisitions Found"
+            description="You have no requisitions in this tab. Tap + New above to create an aggregate supply order."
           />
         ) : (
           filteredRequisitions.map((req) => (
@@ -83,42 +96,60 @@ export function CustomerOrdersListScreen({ onNavigate }: { onNavigate?: (screen:
               style={styles.orderCard}
             >
               <View style={styles.cardHeader}>
-                <Text style={styles.orderRef}>{req.requisitionNumber}</Text>
-                <StatusBadge status={req.status} size="sm" />
+                <Text style={styles.orderNumber}>{req.requisitionNumber}</Text>
+                <StatusBadge status={req.status} />
               </View>
 
-              <Text style={styles.materialName}>{req.material?.name || 'Granite 3/4" (20mm Aggregate)'}</Text>
+              <Text style={styles.materialName}>
+                {req.material?.name || 'Granite 3/4" (20mm Aggregate)'}
+              </Text>
               <Text style={styles.destinationText}>{req.destinationAddress}</Text>
 
               <View style={styles.cardFooter}>
                 <QuantityText tonnes={req.quantity} size="sm" />
-                <MoneyText amount={req.totalPriceSnapshot || req.totalPrice} size="sm" color={Colors.primaryDark} />
+                <MoneyText amount={req.totalPriceSnapshot || req.totalPrice} size="sm" />
               </View>
             </AppCard>
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  newOrderBtn: {
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  newOrderText: {
+    fontSize: Typography.sizes.caption,
+    fontWeight: Typography.weights.bold,
+    color: Colors.primaryDark,
   },
   tabHeader: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    padding: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+    gap: Spacing.sm,
   },
   tabBtn: {
     flex: 1,
     paddingVertical: Spacing.sm,
     alignItems: 'center',
     borderRadius: BorderRadius.md,
+    backgroundColor: Colors.secondaryLight,
   },
   activeTabBtn: {
     backgroundColor: Colors.primaryLight,
@@ -135,9 +166,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xxxl * 2,
+    gap: Spacing.md,
   },
   orderCard: {
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -145,15 +177,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xs,
   },
-  orderRef: {
+  orderNumber: {
     fontSize: Typography.sizes.body,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
   materialName: {
     fontSize: Typography.sizes.bodySm,
-    fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
+    fontWeight: Typography.weights.semibold,
+    marginTop: 2,
   },
   destinationText: {
     fontSize: Typography.sizes.caption,

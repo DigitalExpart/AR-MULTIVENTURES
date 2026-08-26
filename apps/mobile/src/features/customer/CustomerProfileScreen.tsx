@@ -5,9 +5,9 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { AppCard, SectionHeader } from '../../components/common/AppCard';
 import { AppButton } from '../../components/common/AppButton';
 import { DevDataBadge } from '../../components/common/DevDataBadge';
@@ -17,7 +17,14 @@ export function CustomerProfileScreen({ onNavigate }: { onNavigate?: (screen: st
   const { user, logout, switchRole } = useAuth();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Profile & Settings"
+        subtitle="Corporate Identity & Security"
+        onBack={() => onNavigate?.('tabs')}
+        showBack={true}
+      />
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile Card Header */}
         <View style={styles.header}>
@@ -58,20 +65,14 @@ export function CustomerProfileScreen({ onNavigate }: { onNavigate?: (screen: st
           <>
             <SectionHeader title="Operational Role Simulation (DEV ONLY)" />
             <AppCard style={styles.card}>
-              <Text style={styles.switchRoleDesc}>
-                Switch between Customer procurement view and Heavy Tipper Driver transit view:
+              <Text style={styles.devNote}>
+                Switch between Customer and Tipper Driver companion flows for field testing:
               </Text>
               <View style={styles.roleBtnRow}>
                 <AppButton
-                  title="Customer Mode"
-                  onPress={() => switchRole('CUSTOMER')}
-                  variant="outline"
-                  size="sm"
-                  style={{ flex: 1 }}
-                />
-                <AppButton
-                  title="Driver Mode 🚛"
+                  title="Switch to Driver"
                   onPress={() => switchRole('DRIVER')}
+                  variant="outline"
                   size="sm"
                   style={{ flex: 1 }}
                 />
@@ -80,34 +81,38 @@ export function CustomerProfileScreen({ onNavigate }: { onNavigate?: (screen: st
           </>
         )}
 
-        {/* Logout Action */}
-        <AppButton
-          title="Sign Out of AR Multiventures"
-          onPress={logout}
-          variant="danger"
-          size="md"
-          fullWidth
-          style={styles.logoutBtn}
-        />
+        {/* Account Actions */}
+        <View style={styles.logoutSection}>
+          <AppButton
+            title="Sign Out of Account"
+            onPress={logout}
+            variant="danger"
+            size="lg"
+            fullWidth
+          />
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
   },
   scrollContent: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxxl * 2,
+    paddingBottom: Spacing.xxxl,
     gap: Spacing.md,
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: Spacing.xs,
+    paddingVertical: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    ...Shadows.sm,
+    gap: 4,
   },
   avatarCircle: {
     width: 72,
@@ -117,33 +122,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
+    ...Shadows.md,
   },
   avatarInitials: {
-    fontSize: Typography.sizes.heading,
+    fontSize: 26,
     fontWeight: Typography.weights.heavy,
     color: '#FFFFFF',
   },
   userName: {
-    fontSize: Typography.sizes.headingSm,
+    fontSize: Typography.sizes.subheading,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
   userRoleText: {
     fontSize: Typography.sizes.caption,
     fontWeight: Typography.weights.semibold,
-    color: Colors.textSecondary,
-  },
-  companyNameText: {
-    fontSize: Typography.sizes.bodySm,
-    fontWeight: Typography.weights.bold,
     color: Colors.primaryDark,
   },
+  companyNameText: {
+    fontSize: Typography.sizes.caption,
+    color: Colors.textSecondary,
+  },
   card: {
-    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    gap: Spacing.sm,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: Spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
@@ -161,16 +168,17 @@ const styles = StyleSheet.create({
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
-  switchRoleDesc: {
+  devNote: {
     fontSize: Typography.sizes.caption,
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
+    lineHeight: 16,
   },
   roleBtnRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  logoutBtn: {
-    marginTop: Spacing.lg,
+  logoutSection: {
+    marginTop: Spacing.md,
   },
 });
