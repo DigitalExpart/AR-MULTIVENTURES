@@ -252,14 +252,153 @@ export class MockInvoiceRepository implements IInvoiceRepository {
 }
 
 export class MockPaymentRepository implements IPaymentRepository {
-  async list(customerId?: string): Promise<Payment[]> {
-    await new Promise((r) => setTimeout(r, 200));
-    return mockPayments;
+  async list(customerId?: string): Promise<import('@ar-multiventures/types').PaymentRecord[]> {
+    await new Promise((r) => setTimeout(r, 150));
+    // Delegate to financeApi if available or return mock list
+    return [
+      {
+        id: 'pay-01',
+        customerId: customerId || 'cus-buildcorp',
+        customerName: 'BuildCorp Nigeria Limited',
+        paymentReference: 'PAY-2026-000015',
+        paymentMethod: 'PAYSTACK',
+        provider: 'PAYSTACK',
+        environment: 'TEST',
+        amount: 1341375,
+        allocatedAmount: 1341375,
+        unallocatedAmount: 0,
+        currency: 'NGN',
+        paymentDate: '2026-08-21',
+        status: 'CONFIRMED',
+        externalReference: 'PSTK-20260821-499102',
+        receiptNumber: 'REC-2026-000015',
+        invoiceNumber: 'INV-2026-000041',
+        confirmedBy: 'Paystack Automated Gateway',
+        confirmedAt: '2026-08-21T11:00:00Z',
+        createdAt: '2026-08-21T10:30:00Z',
+      },
+      {
+        id: 'pay-02',
+        customerId: customerId || 'cus-buildcorp',
+        customerName: 'BuildCorp Nigeria Limited',
+        paymentReference: 'PAY-2026-000016',
+        paymentMethod: 'BANK_TRANSFER',
+        provider: 'MANUAL_BANK_TRANSFER',
+        environment: 'TEST',
+        amount: 2000000,
+        allocatedAmount: 0,
+        unallocatedAmount: 2000000,
+        currency: 'NGN',
+        paymentDate: '2026-08-25',
+        status: 'PENDING',
+        bankReference: 'ZENITH-DEP-112233',
+        invoiceNumber: 'INV-2026-000042',
+        notes: 'Direct deposit for August batch supplies via Zenith Bank',
+        proofStoragePath: 'customer_proofs/zenith_slip_2000000.pdf',
+        createdAt: '2026-08-25T16:00:00Z',
+      },
+    ];
   }
 
-  async getById(id: string): Promise<Payment | null> {
-    await new Promise((r) => setTimeout(r, 150));
-    return mockPayments.find((p) => p.id === id || p.referenceNumber === id) || null;
+  async getById(id: string): Promise<import('@ar-multiventures/types').PaymentRecord | null> {
+    const list = await this.list();
+    return list.find((p) => p.id === id || p.paymentReference === id) || null;
+  }
+
+  async initializeOnlinePayment(payload: import('@ar-multiventures/types').PaymentInitRequest): Promise<import('@ar-multiventures/types').PaymentInitResponse> {
+    await new Promise((r) => setTimeout(r, 300));
+    const ref = `PAY-2026-${String(Math.floor(100000 + Math.random() * 900000))}`;
+    return {
+      success: true,
+      reference: ref,
+      providerReference: `PSTK-${ref}`,
+      amount: 500000,
+      amountKobo: 50000000,
+      currency: 'NGN',
+      authorizationUrl: `/app/payments?mock_reference=${ref}&status=success`,
+      accessCode: `MOCK_ACCESS_${ref}`,
+    };
+  }
+
+  async verifyOnlinePayment(reference: string): Promise<import('@ar-multiventures/types').PaymentVerifyResponse> {
+    await new Promise((r) => setTimeout(r, 400));
+    const receiptNum = `REC-2026-${String(Math.floor(100000 + Math.random() * 900000))}`;
+    return {
+      success: true,
+      paymentId: `pay-${Date.now()}`,
+      paymentReference: reference,
+      amount: 500000,
+      allocatedAmount: 500000,
+      receiptNumber: receiptNum,
+      receiptId: `rec-${Date.now()}`,
+      issuedAt: new Date().toISOString(),
+    };
+  }
+
+  async submitBankTransfer(payload: import('@ar-multiventures/types').BankTransferSubmissionPayload): Promise<import('@ar-multiventures/types').PaymentRecord> {
+    await new Promise((r) => setTimeout(r, 250));
+    const ref = `PAY-2026-${String(Math.floor(100000 + Math.random() * 900000))}`;
+    return {
+      id: `pay-${Date.now()}`,
+      customerId: payload.customerId,
+      customerName: 'BuildCorp Nigeria Limited',
+      paymentReference: ref,
+      paymentMethod: 'BANK_TRANSFER',
+      provider: 'MANUAL_BANK_TRANSFER',
+      environment: 'TEST',
+      amount: payload.amount,
+      allocatedAmount: 0,
+      unallocatedAmount: payload.amount,
+      currency: 'NGN',
+      paymentDate: payload.paymentDate || new Date().toISOString().split('T')[0],
+      status: 'PENDING',
+      bankReference: payload.bankReference,
+      proofStoragePath: payload.proofStoragePath || (typeof payload.proofFile === 'string' ? payload.proofFile : 'customer_proofs/uploaded_slip.png'),
+      notes: payload.notes,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  async getReceiptByPaymentId(paymentId: string): Promise<import('@ar-multiventures/types').ReceiptRecord | null> {
+    await new Promise((r) => setTimeout(r, 100));
+    return {
+      id: `rec-${paymentId}`,
+      receiptNumber: `REC-2026-000015`,
+      customerId: 'cus-buildcorp',
+      customerName: 'BuildCorp Nigeria Limited',
+      paymentId,
+      paymentReference: 'PAY-2026-000015',
+      paymentMethod: 'PAYSTACK',
+      amount: 1341375,
+      currency: 'NGN',
+      issuedAt: new Date().toISOString(),
+      invoiceNumber: 'INV-2026-000041',
+      allocatedAmount: 1341375,
+    };
+  }
+
+  async getCompanyBankAccounts(): Promise<import('@ar-multiventures/types').CompanyBankAccount[]> {
+    await new Promise((r) => setTimeout(r, 50));
+    return [
+      {
+        id: 'cba-01',
+        bankName: 'Guaranty Trust Bank (GTBank)',
+        accountName: 'AR MULTIVENTURES NIGERIA LIMITED',
+        accountNumber: '0123456789',
+        currency: 'NGN',
+        isActive: true,
+        displayOrder: 1,
+      },
+      {
+        id: 'cba-02',
+        bankName: 'Zenith Bank Plc',
+        accountName: 'AR MULTIVENTURES NIGERIA LIMITED - REVENUE',
+        accountNumber: '1019283746',
+        currency: 'NGN',
+        isActive: true,
+        displayOrder: 2,
+      },
+    ];
   }
 }
 

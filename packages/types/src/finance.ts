@@ -22,6 +22,156 @@ export type PaymentRecordStatus = 'PENDING' | 'CONFIRMED' | 'FAILED' | 'REVERSED
 export type CustomerCreditStatus = 'NO_CREDIT' | 'ACTIVE_CREDIT' | 'SUSPENDED_CREDIT' | 'OVERDUE_LOCKED';
 export type FinancialClearanceStatus = 'PENDING' | 'PAYMENT_CLEARED' | 'CREDIT_APPROVED' | 'MANAGEMENT_OVERRIDE' | 'BLOCKED';
 
+export type PaymentGatewayProvider = 'PAYSTACK' | 'FLUTTERWAVE' | 'MANUAL_BANK_TRANSFER';
+export type PaymentEnvironment = 'TEST' | 'LIVE';
+
+export interface CompanyBankAccount {
+  id: string;
+  organizationId?: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  currency: string;
+  isActive: boolean;
+  displayOrder: number;
+}
+
+export interface ReceiptRecord {
+  id: string;
+  organizationId?: string;
+  receiptNumber: string;
+  customerId: string;
+  customerName?: string;
+  paymentId: string;
+  paymentReference?: string;
+  paymentMethod?: PaymentMethod;
+  amount: number;
+  currency: string;
+  issuedAt: string;
+  createdBy?: string;
+  invoiceNumber?: string;
+  allocatedAmount?: number;
+}
+
+export interface CreditNoteItem {
+  id?: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface CreditNoteRecord {
+  id: string;
+  organizationId?: string;
+  customerId: string;
+  customerName?: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  creditNoteNumber: string;
+  reason: string;
+  amount: number;
+  currency: string;
+  issueDate: string;
+  status: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  items?: CreditNoteItem[];
+  createdAt: string;
+}
+
+export interface DebitNoteItem {
+  id?: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface DebitNoteRecord {
+  id: string;
+  organizationId?: string;
+  customerId: string;
+  customerName?: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  debitNoteNumber: string;
+  reason: string;
+  amount: number;
+  currency: string;
+  issueDate: string;
+  status: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  items?: DebitNoteItem[];
+  createdAt: string;
+}
+
+export interface PaymentAttemptRecord {
+  id: string;
+  paymentId?: string;
+  customerId: string;
+  invoiceId: string;
+  provider: PaymentGatewayProvider;
+  providerReference: string;
+  internalReference: string;
+  accessCode?: string;
+  authorizationUrl?: string;
+  amount: number;
+  amountKobo: number;
+  currency: string;
+  environment: PaymentEnvironment;
+  status: PaymentRecordStatus;
+  failureReason?: string;
+  expiresAt: string;
+  initializedAt: string;
+  verifiedAt?: string;
+}
+
+export interface PaymentInitRequest {
+  invoiceId: string;
+  provider?: PaymentGatewayProvider;
+  callbackUrl?: string;
+}
+
+export interface PaymentInitResponse {
+  success: boolean;
+  reference: string;
+  providerReference: string;
+  amount: number;
+  amountKobo: number;
+  currency: string;
+  authorizationUrl: string;
+  accessCode: string;
+  reused?: boolean;
+}
+
+export interface PaymentVerifyResponse {
+  success: boolean;
+  paymentId: string;
+  paymentReference: string;
+  amount: number;
+  allocatedAmount: number;
+  receiptNumber?: string;
+  receiptId?: string;
+  issuedAt?: string;
+  error?: string;
+}
+
+export interface BankTransferSubmissionPayload {
+  customerId: string;
+  invoiceId?: string;
+  amount: number;
+  paymentDate?: string;
+  bankName: string;
+  bankReference: string;
+  proofFile?: File | string;
+  proofStoragePath?: string;
+  notes?: string;
+}
+
 export interface CustomerFinancialSummary {
   customerId: string;
   accountNumber: string;
@@ -95,10 +245,13 @@ export interface InvoiceRecord {
 
 export interface PaymentRecord {
   id: string;
+  organizationId?: string;
   customerId: string;
   customerName: string;
   paymentReference: string;
   paymentMethod: PaymentMethod;
+  provider?: PaymentGatewayProvider;
+  environment?: PaymentEnvironment;
   amount: number;
   allocatedAmount: number;
   unallocatedAmount: number;
@@ -107,9 +260,15 @@ export interface PaymentRecord {
   status: PaymentRecordStatus;
   bankReference?: string;
   externalReference?: string;
+  proofStoragePath?: string;
+  rejectionReason?: string;
   notes?: string;
   confirmedBy?: string;
   confirmedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  receiptNumber?: string;
+  invoiceNumber?: string;
   createdAt: string;
 }
 
@@ -154,4 +313,8 @@ export interface FinanceDashboardKPIs {
   overdueReceivables: number;
   totalCreditExposure: number;
   totalCreditLimit: number;
+  confirmedPaymentsToday?: number;
+  pendingBankTransfers?: number;
+  unallocatedPayments?: number;
+  paymentFailures?: number;
 }

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Receipt, Eye, Download, Search, CheckCircle2, Clock } from 'lucide-react';
+import { Receipt, Eye, Download, Search, CheckCircle2, Clock, CreditCard } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout/page-header';
 import { DocumentViewerModal } from '@/components/finance/document-viewer-modal';
+import { CheckoutModal } from '@/components/finance/checkout-modal';
 import { formatNaira, formatDate } from '@ar-multiventures/business-logic';
 import { financeApi } from '@ar-multiventures/api';
 import type { InvoiceRecord } from '@ar-multiventures/types';
@@ -13,26 +14,34 @@ export function InvoicesListPage() {
   const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceRecord | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutInvoice, setCheckoutInvoice] = useState<InvoiceRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadInvoices() {
-      setIsLoading(true);
-      try {
-        const list = await financeApi.getInvoices({ customerId: 'cus-buildcorp' });
-        setInvoices(list);
-      } catch (err) {
-        console.error('Failed to load invoices:', err);
-      } finally {
-        setIsLoading(false);
-      }
+  const loadInvoices = async () => {
+    setIsLoading(true);
+    try {
+      const list = await financeApi.getInvoices({ customerId: 'cus-buildcorp' });
+      setInvoices(list);
+    } catch (err) {
+      console.error('Failed to load invoices:', err);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadInvoices();
   }, []);
 
   const handleOpenDoc = (inv: InvoiceRecord) => {
     setSelectedInvoice(inv);
     setIsViewerOpen(true);
+  };
+
+  const handleOpenCheckout = (inv: InvoiceRecord) => {
+    setCheckoutInvoice(inv);
+    setIsCheckoutOpen(true);
   };
 
   return (
@@ -64,6 +73,12 @@ export function InvoicesListPage() {
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-caption text-neutral-400">
                     Loading commercial invoices...
+                  </td>
+                </tr>
+              ) : invoices.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-8 text-center text-caption text-neutral-500">
+                    No commercial invoices found.
                   </td>
                 </tr>
               ) : (
@@ -114,14 +129,27 @@ export function InvoicesListPage() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={() => handleOpenDoc(inv)}
-                        leftIcon={<Eye className="h-3.5 w-3.5" />}
-                      >
-                        View PDF
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        {inv.outstandingAmount > 0 && inv.status !== 'PAID' && (
+                          <Button
+                            variant="primary"
+                            size="xs"
+                            onClick={() => handleOpenCheckout(inv)}
+                            leftIcon={<CreditCard className="h-3.5 w-3.5" />}
+                            className="font-bold shadow-2xs"
+                          >
+                            Pay Now
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => handleOpenDoc(inv)}
+                          leftIcon={<Eye className="h-3.5 w-3.5" />}
+                        >
+                          View PDF
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -136,6 +164,15 @@ export function InvoicesListPage() {
         onClose={() => setIsViewerOpen(false)}
         documentType={selectedInvoice?.invoiceType || 'INVOICE'}
         invoice={selectedInvoice}
+      />
+
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        invoice={checkoutInvoice}
+        onSuccess={() => {
+          loadInvoices();
+        }}
       />
     </div>
   );

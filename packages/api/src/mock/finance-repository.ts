@@ -9,9 +9,48 @@ import type {
   CreditEvaluationResult,
   InvoiceType,
   CustomerCreditStatus,
+  ReceiptRecord,
+  CreditNoteRecord,
+  DebitNoteRecord,
+  CompanyBankAccount,
+  PaymentInitRequest,
+  PaymentInitResponse,
+  PaymentVerifyResponse,
+  BankTransferSubmissionPayload,
 } from '@ar-multiventures/types';
+import { nairaToKobo } from '@ar-multiventures/business-logic';
 
 export class MockFinanceRepository implements IFinanceRepository {
+  private companyBankAccounts: CompanyBankAccount[] = [
+    {
+      id: 'cba-01',
+      bankName: 'Guaranty Trust Bank (GTBank)',
+      accountName: 'AR MULTIVENTURES NIGERIA LIMITED',
+      accountNumber: '0123456789',
+      currency: 'NGN',
+      isActive: true,
+      displayOrder: 1,
+    },
+    {
+      id: 'cba-02',
+      bankName: 'Zenith Bank Plc',
+      accountName: 'AR MULTIVENTURES NIGERIA LIMITED - REVENUE',
+      accountNumber: '1019283746',
+      currency: 'NGN',
+      isActive: true,
+      displayOrder: 2,
+    },
+    {
+      id: 'cba-03',
+      bankName: 'Access Bank Plc',
+      accountName: 'AR MULTIVENTURES NIGERIA LIMITED - HAULAGE',
+      accountNumber: '0098765432',
+      currency: 'NGN',
+      isActive: true,
+      displayOrder: 3,
+    },
+  ];
+
   private customerSummaries: CustomerFinancialSummary[] = [
     {
       customerId: 'cus-buildcorp',
@@ -140,15 +179,19 @@ export class MockFinanceRepository implements IFinanceRepository {
       customerId: 'cus-buildcorp',
       customerName: 'BuildCorp Nigeria Limited',
       paymentReference: 'PAY-2026-000015',
-      paymentMethod: 'BANK_TRANSFER',
+      paymentMethod: 'PAYSTACK',
+      provider: 'PAYSTACK',
+      environment: 'TEST',
       amount: 1341375,
       allocatedAmount: 1341375,
       unallocatedAmount: 0,
       currency: 'NGN',
       paymentDate: '2026-08-21',
       status: 'CONFIRMED',
-      bankReference: 'GTB-TRF-889922',
-      confirmedBy: 'Accounts Officer',
+      externalReference: 'PSTK-20260821-499102',
+      receiptNumber: 'REC-2026-000015',
+      invoiceNumber: 'INV-2026-000041',
+      confirmedBy: 'Paystack Automated Gateway',
       confirmedAt: '2026-08-21T11:00:00Z',
       createdAt: '2026-08-21T10:30:00Z',
     },
@@ -158,6 +201,8 @@ export class MockFinanceRepository implements IFinanceRepository {
       customerName: 'BuildCorp Nigeria Limited',
       paymentReference: 'PAY-2026-000016',
       paymentMethod: 'BANK_TRANSFER',
+      provider: 'MANUAL_BANK_TRANSFER',
+      environment: 'TEST',
       amount: 2000000,
       allocatedAmount: 0,
       unallocatedAmount: 2000000,
@@ -165,10 +210,64 @@ export class MockFinanceRepository implements IFinanceRepository {
       paymentDate: '2026-08-25',
       status: 'PENDING',
       bankReference: 'ZENITH-DEP-112233',
-      notes: 'Direct deposit for August batch supplies',
+      invoiceNumber: 'INV-2026-000042',
+      notes: 'Direct deposit for August batch supplies via Zenith Bank',
+      proofStoragePath: 'customer_proofs/zenith_slip_2000000.pdf',
       createdAt: '2026-08-25T16:00:00Z',
     },
   ];
+
+  private receipts: ReceiptRecord[] = [
+    {
+      id: 'rec-01',
+      receiptNumber: 'REC-2026-000015',
+      customerId: 'cus-buildcorp',
+      customerName: 'BuildCorp Nigeria Limited',
+      paymentId: 'pay-01',
+      paymentReference: 'PAY-2026-000015',
+      paymentMethod: 'PAYSTACK',
+      amount: 1341375,
+      currency: 'NGN',
+      issuedAt: '2026-08-21T11:00:00Z',
+      invoiceNumber: 'INV-2026-000041',
+      allocatedAmount: 1341375,
+    },
+  ];
+
+  private creditNotes: CreditNoteRecord[] = [
+    {
+      id: 'crn-01',
+      customerId: 'cus-buildcorp',
+      customerName: 'BuildCorp Nigeria Limited',
+      invoiceId: 'inv-01',
+      invoiceNumber: 'INV-2026-000041',
+      creditNoteNumber: 'CRN-2026-000001',
+      reason: 'Volume concession on heavy aggregate',
+      amount: 25000,
+      currency: 'NGN',
+      issueDate: '2026-08-22',
+      status: 'ISSUED',
+      approvedBy: 'Commercial Director',
+      approvedAt: '2026-08-22T09:00:00Z',
+      items: [
+        {
+          description: 'Special project rebate',
+          quantity: 1,
+          unit: 'units',
+          unitPrice: 25000,
+          lineTotal: 25000,
+        },
+      ],
+      createdAt: '2026-08-22T09:00:00Z',
+    },
+  ];
+
+  private debitNotes: DebitNoteRecord[] = [];
+
+  async getCompanyBankAccounts(): Promise<CompanyBankAccount[]> {
+    await new Promise((r) => setTimeout(r, 50));
+    return this.companyBankAccounts.filter((b) => b.isActive);
+  }
 
   async getDashboardKPIs(): Promise<FinanceDashboardKPIs> {
     await new Promise((r) => setTimeout(r, 100));
@@ -177,16 +276,22 @@ export class MockFinanceRepository implements IFinanceRepository {
       .filter((p) => p.status === 'CONFIRMED')
       .reduce((sum, p) => sum + p.amount, 0);
     const outstandingInvoicesCount = this.invoices.filter((i) => i.status === 'ISSUED' || i.status === 'PARTIALLY_PAID').length;
-    const totalCreditExposure = totalReceivables;
-    const totalCreditLimit = this.customerSummaries.reduce((sum, c) => sum + c.creditLimit, 0);
+    const confirmedPaymentsToday = this.payments.filter((p) => p.status === 'CONFIRMED').length;
+    const pendingBankTransfers = this.payments.filter((p) => p.status === 'PENDING' && p.paymentMethod === 'BANK_TRANSFER').length;
+    const unallocatedPayments = this.payments.reduce((sum, p) => sum + (p.unallocatedAmount || 0), 0);
+    const paymentFailures = this.payments.filter((p) => p.status === 'FAILED').length;
 
     return {
       totalReceivables,
       paymentsReceived,
       outstandingInvoicesCount,
       overdueReceivables: 0,
-      totalCreditExposure,
-      totalCreditLimit,
+      totalCreditExposure: totalReceivables,
+      totalCreditLimit: this.customerSummaries.reduce((sum, c) => sum + c.creditLimit, 0),
+      confirmedPaymentsToday,
+      pendingBankTransfers,
+      unallocatedPayments,
+      paymentFailures,
     };
   }
 
@@ -197,7 +302,7 @@ export class MockFinanceRepository implements IFinanceRepository {
     return {
       customerId,
       accountNumber: 'CUS-000001',
-      companyName: 'Client Account',
+      companyName: 'BuildCorp Nigeria Limited',
       totalDebit: 0,
       totalCredit: 0,
       outstandingReceivable: 0,
@@ -284,7 +389,7 @@ export class MockFinanceRepository implements IFinanceRepository {
     return { invoiceId: newInv.id, invoiceNumber: invNum };
   }
 
-  async getPayments(filters?: { customerId?: string; status?: string }): Promise<PaymentRecord[]> {
+  async getPayments(filters?: { customerId?: string; status?: string; method?: string }): Promise<PaymentRecord[]> {
     await new Promise((r) => setTimeout(r, 100));
     let list = [...this.payments];
     if (filters?.customerId) {
@@ -292,6 +397,9 @@ export class MockFinanceRepository implements IFinanceRepository {
     }
     if (filters?.status && filters.status !== 'all') {
       list = list.filter((p) => p.status.toLowerCase() === filters.status?.toLowerCase());
+    }
+    if (filters?.method && filters.method !== 'all') {
+      list = list.filter((p) => p.paymentMethod.toLowerCase() === filters.method?.toLowerCase());
     }
     return list;
   }
@@ -301,24 +409,124 @@ export class MockFinanceRepository implements IFinanceRepository {
     return this.payments.find((p) => p.id === id || p.paymentReference === id) || null;
   }
 
-  async submitBankTransfer(payload: { customerId: string; amount: number; bankReference?: string; notes?: string }): Promise<PaymentRecord> {
-    await new Promise((r) => setTimeout(r, 200));
+  async initializeOnlinePayment(payload: PaymentInitRequest): Promise<PaymentInitResponse> {
+    await new Promise((r) => setTimeout(r, 300));
+    const inv = this.invoices.find((i) => i.id === payload.invoiceId || i.invoiceNumber === payload.invoiceId);
+    if (!inv) throw new Error('Invoice not found for payment initialization');
+
+    const outstanding = inv.outstandingAmount;
+    if (outstanding <= 0) throw new Error('Invoice already fully settled');
+
+    const ref = `PAY-2026-${String(Math.floor(100000 + Math.random() * 900000))}`;
+    const provRef = `PSTK-20260826-${Math.random().toString(36).substring(2, 10)}`;
+
+    return {
+      success: true,
+      reference: ref,
+      providerReference: provRef,
+      amount: outstanding,
+      amountKobo: nairaToKobo(outstanding),
+      currency: 'NGN',
+      authorizationUrl: `/app/payments?mock_reference=${ref}&status=success`,
+      accessCode: `MOCK_ACCESS_${ref}`,
+    };
+  }
+
+  async verifyOnlinePayment(reference: string): Promise<PaymentVerifyResponse> {
+    await new Promise((r) => setTimeout(r, 400));
+    // Find matching invoice or create confirmed payment record
+    const targetInv = this.invoices.find((i) => i.outstandingAmount > 0) || this.invoices[0];
+    const amountToSettle = targetInv?.outstandingAmount || 500000;
+
+    const receiptNum = `REC-2026-${String(this.receipts.length + 16).padStart(6, '0')}`;
+    const newPayId = `pay-${Date.now()}`;
+
+    const newPayment: PaymentRecord = {
+      id: newPayId,
+      customerId: 'cus-buildcorp',
+      customerName: 'BuildCorp Nigeria Limited',
+      paymentReference: reference,
+      paymentMethod: 'PAYSTACK',
+      provider: 'PAYSTACK',
+      environment: 'TEST',
+      amount: amountToSettle,
+      allocatedAmount: amountToSettle,
+      unallocatedAmount: 0,
+      currency: 'NGN',
+      paymentDate: new Date().toISOString().split('T')[0],
+      status: 'CONFIRMED',
+      externalReference: `PSTK-VERIFIED-${reference}`,
+      receiptNumber: receiptNum,
+      invoiceNumber: targetInv?.invoiceNumber,
+      confirmedBy: 'Paystack Automated Gateway',
+      confirmedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+
+    this.payments.unshift(newPayment);
+
+    // Settle target invoice
+    if (targetInv) {
+      targetInv.amountPaid += amountToSettle;
+      targetInv.outstandingAmount = Math.max(0, targetInv.totalAmount - targetInv.amountPaid);
+      targetInv.status = targetInv.outstandingAmount === 0 ? 'PAID' : 'PARTIALLY_PAID';
+    }
+
+    // Generate authoritative receipt
+    const newReceipt: ReceiptRecord = {
+      id: `rec-${Date.now()}`,
+      receiptNumber: receiptNum,
+      customerId: 'cus-buildcorp',
+      customerName: 'BuildCorp Nigeria Limited',
+      paymentId: newPayId,
+      paymentReference: reference,
+      paymentMethod: 'PAYSTACK',
+      amount: amountToSettle,
+      currency: 'NGN',
+      issuedAt: new Date().toISOString(),
+      invoiceNumber: targetInv?.invoiceNumber,
+      allocatedAmount: amountToSettle,
+    };
+    this.receipts.unshift(newReceipt);
+
+    return {
+      success: true,
+      paymentId: newPayId,
+      paymentReference: reference,
+      amount: amountToSettle,
+      allocatedAmount: amountToSettle,
+      receiptNumber: receiptNum,
+      receiptId: newReceipt.id,
+      issuedAt: newReceipt.issuedAt,
+    };
+  }
+
+  async submitBankTransfer(payload: BankTransferSubmissionPayload): Promise<PaymentRecord> {
+    await new Promise((r) => setTimeout(r, 250));
+    const inv = payload.invoiceId ? this.invoices.find((i) => i.id === payload.invoiceId || i.invoiceNumber === payload.invoiceId) : null;
+    const ref = `PAY-2026-${String(Math.floor(100000 + Math.random() * 900000))}`;
+
     const newPay: PaymentRecord = {
       id: `pay-${Date.now()}`,
       customerId: payload.customerId,
       customerName: 'BuildCorp Nigeria Limited',
-      paymentReference: `PAY-2026-0000${this.payments.length + 20}`,
+      paymentReference: ref,
       paymentMethod: 'BANK_TRANSFER',
+      provider: 'MANUAL_BANK_TRANSFER',
+      environment: 'TEST',
       amount: payload.amount,
       allocatedAmount: 0,
       unallocatedAmount: payload.amount,
       currency: 'NGN',
-      paymentDate: new Date().toISOString().split('T')[0],
+      paymentDate: payload.paymentDate || new Date().toISOString().split('T')[0],
       status: 'PENDING',
       bankReference: payload.bankReference,
+      proofStoragePath: payload.proofStoragePath || (typeof payload.proofFile === 'string' ? payload.proofFile : 'customer_proofs/uploaded_slip.png'),
+      invoiceNumber: inv?.invoiceNumber,
       notes: payload.notes,
       createdAt: new Date().toISOString(),
     };
+
     this.payments.unshift(newPay);
     return newPay;
   }
@@ -331,6 +539,9 @@ export class MockFinanceRepository implements IFinanceRepository {
     pay.confirmedBy = 'Accounts Officer';
     pay.confirmedAt = new Date().toISOString();
     if (bankReference) pay.bankReference = bankReference;
+
+    const receiptNum = `REC-2026-${String(this.receipts.length + 16).padStart(6, '0')}`;
+    pay.receiptNumber = receiptNum;
 
     if (allocations && allocations.length > 0) {
       let totalAlloc = 0;
@@ -346,6 +557,127 @@ export class MockFinanceRepository implements IFinanceRepository {
       pay.allocatedAmount = totalAlloc;
       pay.unallocatedAmount = pay.amount - totalAlloc;
     }
+
+    // Generate receipt
+    const newReceipt: ReceiptRecord = {
+      id: `rec-${Date.now()}`,
+      receiptNumber: receiptNum,
+      customerId: pay.customerId,
+      customerName: pay.customerName,
+      paymentId: pay.id,
+      paymentReference: pay.paymentReference,
+      paymentMethod: pay.paymentMethod,
+      amount: pay.amount,
+      currency: pay.currency,
+      issuedAt: new Date().toISOString(),
+      invoiceNumber: pay.invoiceNumber,
+      allocatedAmount: pay.allocatedAmount,
+    };
+    this.receipts.unshift(newReceipt);
+  }
+
+  async rejectBankTransfer(paymentId: string, reason: string): Promise<void> {
+    await new Promise((r) => setTimeout(r, 200));
+    const pay = this.payments.find((p) => p.id === paymentId);
+    if (!pay) throw new Error('Payment not found');
+    pay.status = 'FAILED';
+    pay.rejectionReason = reason;
+    pay.rejectedBy = 'Accounts Supervisor';
+    pay.rejectedAt = new Date().toISOString();
+  }
+
+  async getReceipts(customerId?: string): Promise<ReceiptRecord[]> {
+    await new Promise((r) => setTimeout(r, 100));
+    if (customerId) {
+      return this.receipts.filter((r) => r.customerId === customerId);
+    }
+    return this.receipts;
+  }
+
+  async getReceiptById(id: string): Promise<ReceiptRecord | null> {
+    await new Promise((r) => setTimeout(r, 100));
+    return this.receipts.find((r) => r.id === id || r.receiptNumber === id) || null;
+  }
+
+  async getReceiptByPaymentId(paymentId: string): Promise<ReceiptRecord | null> {
+    await new Promise((r) => setTimeout(r, 100));
+    return this.receipts.find((r) => r.paymentId === paymentId) || null;
+  }
+
+  async getCreditNotes(customerId?: string): Promise<CreditNoteRecord[]> {
+    await new Promise((r) => setTimeout(r, 100));
+    if (customerId) return this.creditNotes.filter((c) => c.customerId === customerId);
+    return this.creditNotes;
+  }
+
+  async issueCreditNote(payload: { customerId: string; invoiceId?: string; reason: string; items: Array<{ description: string; quantity: number; unit?: string; unitPrice: number; lineTotal?: number }> }): Promise<CreditNoteRecord> {
+    await new Promise((r) => setTimeout(r, 200));
+    const crnNum = `CRN-2026-${String(this.creditNotes.length + 10).padStart(6, '0')}`;
+    const total = payload.items.reduce((sum, item) => sum + (item.lineTotal || item.unitPrice * item.quantity), 0);
+
+    const newCrn: CreditNoteRecord = {
+      id: `crn-${Date.now()}`,
+      customerId: payload.customerId,
+      customerName: 'BuildCorp Nigeria Limited',
+      invoiceId: payload.invoiceId,
+      creditNoteNumber: crnNum,
+      reason: payload.reason,
+      amount: total,
+      currency: 'NGN',
+      issueDate: new Date().toISOString().split('T')[0],
+      status: 'ISSUED',
+      approvedBy: 'Commercial Director',
+      approvedAt: new Date().toISOString(),
+      items: payload.items.map((it) => ({
+        description: it.description,
+        quantity: it.quantity,
+        unit: it.unit || 'units',
+        unitPrice: it.unitPrice,
+        lineTotal: it.lineTotal || it.unitPrice * it.quantity,
+      })),
+      createdAt: new Date().toISOString(),
+    };
+
+    this.creditNotes.unshift(newCrn);
+    return newCrn;
+  }
+
+  async getDebitNotes(customerId?: string): Promise<DebitNoteRecord[]> {
+    await new Promise((r) => setTimeout(r, 100));
+    if (customerId) return this.debitNotes.filter((d) => d.customerId === customerId);
+    return this.debitNotes;
+  }
+
+  async issueDebitNote(payload: { customerId: string; invoiceId?: string; reason: string; items: Array<{ description: string; quantity: number; unit?: string; unitPrice: number; lineTotal?: number }> }): Promise<DebitNoteRecord> {
+    await new Promise((r) => setTimeout(r, 200));
+    const dbnNum = `DBN-2026-${String(this.debitNotes.length + 10).padStart(6, '0')}`;
+    const total = payload.items.reduce((sum, item) => sum + (item.lineTotal || item.unitPrice * item.quantity), 0);
+
+    const newDbn: DebitNoteRecord = {
+      id: `dbn-${Date.now()}`,
+      customerId: payload.customerId,
+      customerName: 'BuildCorp Nigeria Limited',
+      invoiceId: payload.invoiceId,
+      debitNoteNumber: dbnNum,
+      reason: payload.reason,
+      amount: total,
+      currency: 'NGN',
+      issueDate: new Date().toISOString().split('T')[0],
+      status: 'ISSUED',
+      approvedBy: 'Commercial Director',
+      approvedAt: new Date().toISOString(),
+      items: payload.items.map((it) => ({
+        description: it.description,
+        quantity: it.quantity,
+        unit: it.unit || 'units',
+        unitPrice: it.unitPrice,
+        lineTotal: it.lineTotal || it.unitPrice * it.quantity,
+      })),
+      createdAt: new Date().toISOString(),
+    };
+
+    this.debitNotes.unshift(newDbn);
+    return newDbn;
   }
 
   async evaluateCreditForRequisition(requisitionId: string): Promise<CreditEvaluationResult> {
@@ -421,7 +753,7 @@ export class MockFinanceRepository implements IFinanceRepository {
         transactionType: 'PAYMENT' as const,
         referenceType: 'PAYMENT',
         documentNumber: 'PAY-2026-000015',
-        description: 'Bank Transfer Payment #PAY-2026-000015',
+        description: 'Paystack Verified Payment #PAY-2026-000015',
         debit: 0,
         credit: 1341375,
         runningBalance: 0,

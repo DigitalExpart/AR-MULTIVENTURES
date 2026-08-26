@@ -10,7 +10,23 @@ import type {
   Quarry,
   Material,
   Truck,
-  Notification
+  Notification,
+  PaymentRecord,
+  InvoiceRecord,
+  ReceiptRecord,
+  CreditNoteRecord,
+  DebitNoteRecord,
+  CompanyBankAccount,
+  PaymentInitRequest,
+  PaymentInitResponse,
+  PaymentVerifyResponse,
+  BankTransferSubmissionPayload,
+  CustomerFinancialSummary,
+  CustomerStatement,
+  CreditEvaluationResult,
+  FinanceDashboardKPIs,
+  InvoiceType,
+  CustomerCreditStatus
 } from '@ar-multiventures/types';
 import type { LoginFormValues, RegisterFormValues } from '@ar-multiventures/validation';
 
@@ -51,8 +67,13 @@ export interface IInvoiceRepository {
 }
 
 export interface IPaymentRepository {
-  list(customerId?: string): Promise<Payment[]>;
-  getById(id: string): Promise<Payment | null>;
+  list(customerId?: string): Promise<PaymentRecord[]>;
+  getById(id: string): Promise<PaymentRecord | null>;
+  initializeOnlinePayment(payload: PaymentInitRequest): Promise<PaymentInitResponse>;
+  verifyOnlinePayment(reference: string): Promise<PaymentVerifyResponse>;
+  submitBankTransfer(payload: BankTransferSubmissionPayload): Promise<PaymentRecord>;
+  getReceiptByPaymentId(paymentId: string): Promise<ReceiptRecord | null>;
+  getCompanyBankAccounts(): Promise<CompanyBankAccount[]>;
 }
 
 export interface IResourceRepository {
@@ -101,20 +122,29 @@ export interface IAdminRepository {
 }
 
 export interface IFinanceRepository {
-  getDashboardKPIs(): Promise<import('@ar-multiventures/types').FinanceDashboardKPIs>;
-  getCustomerFinancialSummary(customerId: string): Promise<import('@ar-multiventures/types').CustomerFinancialSummary>;
-  getAllCustomerFinancialSummaries(): Promise<import('@ar-multiventures/types').CustomerFinancialSummary[]>;
-  getInvoices(filters?: { customerId?: string; status?: string; search?: string }): Promise<import('@ar-multiventures/types').InvoiceRecord[]>;
-  getInvoiceById(id: string): Promise<import('@ar-multiventures/types').InvoiceRecord | null>;
-  issueInvoiceForRequisition(requisitionId: string, invoiceType?: import('@ar-multiventures/types').InvoiceType): Promise<{ invoiceId: string; invoiceNumber: string }>;
-  getPayments(filters?: { customerId?: string; status?: string }): Promise<import('@ar-multiventures/types').PaymentRecord[]>;
-  getPaymentById(id: string): Promise<import('@ar-multiventures/types').PaymentRecord | null>;
-  submitBankTransfer(payload: { customerId: string; amount: number; bankReference?: string; notes?: string }): Promise<import('@ar-multiventures/types').PaymentRecord>;
+  getDashboardKPIs(): Promise<FinanceDashboardKPIs>;
+  getCustomerFinancialSummary(customerId: string): Promise<CustomerFinancialSummary>;
+  getAllCustomerFinancialSummaries(): Promise<CustomerFinancialSummary[]>;
+  getInvoices(filters?: { customerId?: string; status?: string; search?: string }): Promise<InvoiceRecord[]>;
+  getInvoiceById(id: string): Promise<InvoiceRecord | null>;
+  issueInvoiceForRequisition(requisitionId: string, invoiceType?: InvoiceType): Promise<{ invoiceId: string; invoiceNumber: string }>;
+  getPayments(filters?: { customerId?: string; status?: string; method?: string }): Promise<PaymentRecord[]>;
+  getPaymentById(id: string): Promise<PaymentRecord | null>;
+  initializeOnlinePayment(payload: PaymentInitRequest): Promise<PaymentInitResponse>;
+  verifyOnlinePayment(reference: string): Promise<PaymentVerifyResponse>;
+  submitBankTransfer(payload: BankTransferSubmissionPayload): Promise<PaymentRecord>;
   confirmPayment(paymentId: string, bankReference?: string, allocations?: Array<{ invoiceId: string; amount: number }>): Promise<void>;
-  evaluateCreditForRequisition(requisitionId: string): Promise<import('@ar-multiventures/types').CreditEvaluationResult>;
+  rejectBankTransfer(paymentId: string, reason: string): Promise<void>;
+  getCompanyBankAccounts(): Promise<CompanyBankAccount[]>;
+  getReceipts(customerId?: string): Promise<ReceiptRecord[]>;
+  getReceiptById(id: string): Promise<ReceiptRecord | null>;
+  getReceiptByPaymentId(paymentId: string): Promise<ReceiptRecord | null>;
+  getCreditNotes(customerId?: string): Promise<CreditNoteRecord[]>;
+  issueCreditNote(payload: { customerId: string; invoiceId?: string; reason: string; items: Array<{ description: string; quantity: number; unit?: string; unitPrice: number; lineTotal?: number }> }): Promise<CreditNoteRecord>;
+  getDebitNotes(customerId?: string): Promise<DebitNoteRecord[]>;
+  issueDebitNote(payload: { customerId: string; invoiceId?: string; reason: string; items: Array<{ description: string; quantity: number; unit?: string; unitPrice: number; lineTotal?: number }> }): Promise<DebitNoteRecord>;
+  evaluateCreditForRequisition(requisitionId: string): Promise<CreditEvaluationResult>;
   grantManagementCreditOverride(requisitionId: string, reason: string): Promise<void>;
-  getCustomerStatement(customerId: string, startDate?: string, endDate?: string): Promise<import('@ar-multiventures/types').CustomerStatement>;
-  updateCustomerCreditProfile(customerId: string, payload: { creditLimit: number; creditPeriodDays: number; creditStatus: import('@ar-multiventures/types').CustomerCreditStatus; notes?: string }): Promise<void>;
+  getCustomerStatement(customerId: string, startDate?: string, endDate?: string): Promise<CustomerStatement>;
+  updateCustomerCreditProfile(customerId: string, payload: { creditLimit: number; creditPeriodDays: number; creditStatus: CustomerCreditStatus; notes?: string }): Promise<void>;
 }
-
-

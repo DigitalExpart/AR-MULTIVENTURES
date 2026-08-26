@@ -11,6 +11,24 @@ export function formatNaira(amount: number): string {
 }
 
 /**
+ * Converts Nigerian Naira (NUMERIC / Decimal) to Kobo (Integer) with safe rounding.
+ * e.g. ₦500,000.00 -> 50,000,000 kobo
+ */
+export function nairaToKobo(naira: number): number {
+  if (isNaN(naira) || naira < 0) return 0;
+  return Math.round(Number(naira.toFixed(2)) * 100);
+}
+
+/**
+ * Converts Kobo (Integer) to Nigerian Naira (Decimal with 2 decimal places).
+ * e.g. 50,000,000 kobo -> ₦500,000.00
+ */
+export function koboToNaira(kobo: number): number {
+  if (isNaN(kobo) || kobo < 0) return 0;
+  return Number((Math.round(kobo) / 100).toFixed(2));
+}
+
+/**
  * Formats integers with comma separation.
  */
 export function formatNumber(num: number): string {

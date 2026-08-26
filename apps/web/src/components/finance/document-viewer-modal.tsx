@@ -1,7 +1,7 @@
-import { Printer, Download, X, ShieldCheck } from 'lucide-react';
+import { Printer, Download, X, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatNaira, formatDate } from '@ar-multiventures/business-logic';
-import type { InvoiceRecord, CustomerStatement, PaymentRecord } from '@ar-multiventures/types';
+import type { InvoiceRecord, CustomerStatement, PaymentRecord, ReceiptRecord } from '@ar-multiventures/types';
 
 interface DocumentViewerModalProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface DocumentViewerModalProps {
   invoice?: InvoiceRecord | null;
   statement?: CustomerStatement | null;
   payment?: PaymentRecord | null;
+  receipt?: ReceiptRecord | null;
 }
 
 export function DocumentViewerModal({
@@ -19,6 +20,7 @@ export function DocumentViewerModal({
   invoice,
   statement,
   payment,
+  receipt,
 }: DocumentViewerModalProps) {
   if (!isOpen) return null;
 
@@ -84,16 +86,16 @@ export function DocumentViewerModal({
                   : 'OFFICIAL RECEIPT'}
               </span>
               <span className="font-mono font-bold text-body-sm text-neutral-700 block mt-1">
-                {invoice?.invoiceNumber || payment?.paymentReference || `STMT-${statement?.accountNumber}`}
+                {receipt?.receiptNumber || invoice?.invoiceNumber || payment?.paymentReference || `STMT-${statement?.accountNumber}`}
               </span>
               <span className="text-caption text-neutral-500 font-mono block">
-                Date: {formatDate(invoice?.issueDate || payment?.paymentDate || statement?.endDate || new Date().toISOString())}
+                Date: {formatDate(receipt?.issuedAt || invoice?.issueDate || payment?.paymentDate || statement?.endDate || new Date().toISOString())}
               </span>
             </div>
           </div>
 
           {/* INVOICE VIEW */}
-          {invoice && (
+          {invoice && documentType !== 'RECEIPT' && (
             <div className="space-y-6">
               {/* Customer & Order Metadata Grid */}
               <div className="grid sm:grid-cols-2 gap-6 text-body-sm">
@@ -187,7 +189,7 @@ export function DocumentViewerModal({
           )}
 
           {/* STATEMENT VIEW */}
-          {statement && (
+          {statement && documentType === 'STATEMENT' && (
             <div className="space-y-6">
               <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 flex justify-between text-body-sm">
                 <div>
@@ -228,6 +230,38 @@ export function DocumentViewerModal({
               <div className="p-4 bg-primary-50 rounded-xl border border-primary-200 flex justify-between font-mono font-bold text-body-sm">
                 <span>Closing Statement Balance:</span>
                 <span className="text-primary-900 text-body font-black">{formatNaira(statement.closingBalance)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* RECEIPT VIEW */}
+          {(receipt || payment) && documentType === 'RECEIPT' && (
+            <div className="space-y-6">
+              <div className="grid sm:grid-cols-2 gap-4 text-body-sm">
+                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
+                  <span className="text-[11px] font-mono font-bold uppercase text-neutral-400">Received From</span>
+                  <div className="font-bold text-neutral-950 text-body">{receipt?.customerName || payment?.customerName}</div>
+                  <div className="text-caption text-neutral-600 font-mono">Payment Ref: {receipt?.paymentReference || payment?.paymentReference}</div>
+                </div>
+
+                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1 text-right sm:text-left">
+                  <span className="text-[11px] font-mono font-bold uppercase text-neutral-400">Payment Channel</span>
+                  <div className="font-bold text-neutral-900 uppercase">{(receipt?.paymentMethod || payment?.paymentMethod || 'PAYSTACK').replace('_', ' ')}</div>
+                  <div className="text-caption font-semibold uppercase text-emerald-800 flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Confirmed & Ledger Credited
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between font-mono">
+                <div>
+                  <span className="text-[11px] uppercase font-bold text-emerald-800 block">Total Amount Paid</span>
+                  <span className="text-caption text-emerald-700">Authoritative Sub-Ledger Posting</span>
+                </div>
+                <div className="text-h2 font-black text-emerald-950">
+                  {formatNaira(receipt?.amount || payment?.amount || 0)}
+                </div>
               </div>
             </div>
           )}
