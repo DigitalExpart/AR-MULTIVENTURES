@@ -95,17 +95,21 @@ BEGIN
         updated_at = NOW()
     WHERE id = p_trip_id;
 
-    -- Release Driver & Truck availability
+    -- Release Driver & Truck availability without overwriting maintenance status
     IF v_trip.driver_id IS NOT NULL THEN
         UPDATE drivers 
         SET availability_status = 'AVAILABLE', updated_at = NOW()
-        WHERE id = v_trip.driver_id;
+        WHERE id = v_trip.driver_id 
+          AND is_active = TRUE 
+          AND availability_status NOT IN ('SUSPENDED', 'TERMINATED', 'ON_LEAVE');
     END IF;
 
     IF v_trip.truck_id IS NOT NULL THEN
         UPDATE trucks 
-        SET maintenance_status = 'OPERATIONAL', updated_at = NOW()
-        WHERE id = v_trip.truck_id AND maintenance_status NOT IN ('UNDER_MAINTENANCE', 'GROUNDED');
+        SET availability_status = 'AVAILABLE', updated_at = NOW()
+        WHERE id = v_trip.truck_id 
+          AND is_active = TRUE 
+          AND availability_status NOT IN ('UNAVAILABLE', 'INACTIVE');
     END IF;
 
     -- Check overall Requisition completion

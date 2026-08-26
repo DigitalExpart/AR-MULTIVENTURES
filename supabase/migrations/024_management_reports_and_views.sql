@@ -7,21 +7,21 @@ CREATE OR REPLACE VIEW view_sales_summary AS
 SELECT
     r.id AS requisition_id,
     r.organization_id,
-    r.reference_number,
+    r.requisition_number AS reference_number,
     r.customer_id,
-    c.name AS customer_name,
+    c.company_name AS customer_name,
     r.quarry_id,
     q.name AS quarry_name,
     r.destination_id,
-    d.name AS destination_name,
+    COALESCE(d.name, r.destination_name_cache) AS destination_name,
     r.status,
-    r.financial_clearance_status,
+    r.payment_status,
     r.total_amount_snapshot AS total_amount,
-    r.subtotal_snapshot AS subtotal,
-    r.vat_snapshot AS vat,
+    (r.material_amount_snapshot + r.haulage_amount_snapshot + r.loading_amount_snapshot) AS subtotal,
     r.material_amount_snapshot AS material_amount,
     r.haulage_amount_snapshot AS haulage_amount,
     r.loading_amount_snapshot AS loading_amount,
+    r.discount_amount_snapshot AS discount_amount,
     r.created_at,
     r.updated_at
 FROM requisitions r
@@ -47,8 +47,8 @@ WITH invoice_balances AS (
 )
 SELECT
     c.id AS customer_id,
-    c.name AS customer_name,
-    c.reference_number AS customer_reference,
+    c.company_name AS customer_name,
+    c.account_number AS customer_reference,
     COALESCE(SUM(ib.outstanding_amount), 0) AS total_outstanding,
     COALESCE(SUM(CASE WHEN ib.days_overdue = 0 THEN ib.outstanding_amount ELSE 0 END), 0) AS bucket_current,
     COALESCE(SUM(CASE WHEN ib.days_overdue BETWEEN 1 AND 30 THEN ib.outstanding_amount ELSE 0 END), 0) AS bucket_1_30,
@@ -57,7 +57,7 @@ SELECT
     COALESCE(SUM(CASE WHEN ib.days_overdue > 90 THEN ib.outstanding_amount ELSE 0 END), 0) AS bucket_90_plus
 FROM customers c
 LEFT JOIN invoice_balances ib ON c.id = ib.customer_id
-GROUP BY c.id, c.name, c.reference_number;
+GROUP BY c.id, c.company_name, c.account_number;
 
 -- 3. VIEW: QUARRY OPERATIONS & LOADING PERFORMANCE
 CREATE OR REPLACE VIEW view_quarry_performance AS

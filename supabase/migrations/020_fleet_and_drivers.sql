@@ -14,6 +14,11 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
+    CREATE TYPE truck_availability_status AS ENUM ('AVAILABLE', 'ASSIGNED', 'AT_QUARRY', 'LOADING', 'IN_TRANSIT', 'DELIVERING', 'UNAVAILABLE', 'INACTIVE');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
     CREATE TYPE driver_availability_status AS ENUM ('AVAILABLE', 'ASSIGNED_TO_TRIP', 'ON_LEAVE', 'SUSPENDED', 'TERMINATED');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
@@ -34,6 +39,7 @@ CREATE TABLE IF NOT EXISTS trucks (
     engine_number VARCHAR(100),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     maintenance_status truck_maintenance_status NOT NULL DEFAULT 'OPERATIONAL',
+    availability_status truck_availability_status NOT NULL DEFAULT 'AVAILABLE',
     insurance_expiry DATE,
     roadworthiness_expiry DATE,
     registration_expiry DATE,

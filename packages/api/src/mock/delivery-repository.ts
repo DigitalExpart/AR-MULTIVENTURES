@@ -419,20 +419,26 @@ export class MockDeliveryRepository implements IDeliveryRepository {
     trip.completedAt = new Date().toISOString();
     trip.updatedAt = new Date().toISOString();
 
-    // Release assigned truck and driver in mock fleet records
+    // Release assigned truck and driver availability without overwriting maintenance or inactive status
     if (trip.truckId) {
       const truck = mockFleetTrucks.find((t) => t.id === trip.truckId);
       if (truck) {
         truck.activeTripId = undefined;
-        if (truck.maintenanceStatus !== 'UNDER_MAINTENANCE' && truck.maintenanceStatus !== 'GROUNDED') {
-          truck.maintenanceStatus = 'OPERATIONAL';
+        if (truck.availabilityStatus !== 'UNAVAILABLE' && truck.availabilityStatus !== 'INACTIVE') {
+          truck.availabilityStatus = 'AVAILABLE';
         }
       }
     }
 
     if (trip.driverId) {
       const driver = mockDrivers.find((d) => d.id === trip.driverId);
-      if (driver && driver.availabilityStatus !== 'ON_LEAVE' && driver.availabilityStatus !== 'SUSPENDED') {
+      if (
+        driver &&
+        driver.isActive &&
+        driver.availabilityStatus !== 'ON_LEAVE' &&
+        driver.availabilityStatus !== 'SUSPENDED' &&
+        driver.availabilityStatus !== 'TERMINATED'
+      ) {
         driver.availabilityStatus = 'AVAILABLE';
       }
     }

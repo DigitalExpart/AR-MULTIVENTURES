@@ -19,12 +19,10 @@ USING (
             SELECT customer_id FROM customer_users WHERE user_id = auth.uid()
         )
     )
-    OR (
-        EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE id = auth.uid() AND role IN ('ADMIN', 'EXECUTIVE', 'OPERATIONS_MANAGER')
-        )
-    )
+    OR public.is_super_admin()
+    OR public.has_role('ADMIN')
+    OR public.has_role('EXECUTIVE')
+    OR public.has_role('OPERATIONS_MANAGER')
 );
 
 DROP POLICY IF EXISTS "Users can update own notifications read status" ON notifications;
@@ -45,20 +43,21 @@ DROP POLICY IF EXISTS "Staff can view operational exceptions" ON operational_exc
 CREATE POLICY "Staff can view operational exceptions"
 ON operational_exceptions FOR SELECT
 USING (
-    EXISTS (
-        SELECT 1 FROM profiles
-        WHERE id = auth.uid() 
-          AND role IN ('ADMIN', 'EXECUTIVE', 'OPERATIONS_MANAGER', 'SALES_OFFICER', 'FINANCE_OFFICER')
-    )
+    public.is_super_admin()
+    OR public.has_role('ADMIN')
+    OR public.has_role('EXECUTIVE')
+    OR public.has_role('OPERATIONS_MANAGER')
+    OR public.has_role('SALES_OFFICER')
+    OR public.has_role('FINANCE_OFFICER')
 );
 
 DROP POLICY IF EXISTS "Staff can resolve operational exceptions" ON operational_exceptions;
 CREATE POLICY "Staff can resolve operational exceptions"
 ON operational_exceptions FOR UPDATE
 USING (
-    EXISTS (
-        SELECT 1 FROM profiles
-        WHERE id = auth.uid() 
-          AND role IN ('ADMIN', 'EXECUTIVE', 'OPERATIONS_MANAGER', 'FINANCE_OFFICER')
-    )
+    public.is_super_admin()
+    OR public.has_role('ADMIN')
+    OR public.has_role('EXECUTIVE')
+    OR public.has_role('OPERATIONS_MANAGER')
+    OR public.has_role('FINANCE_OFFICER')
 );

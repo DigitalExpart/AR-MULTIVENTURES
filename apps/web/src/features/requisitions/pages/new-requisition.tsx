@@ -243,6 +243,19 @@ export function NewRequisitionPage() {
                 );
               })}
             </div>
+
+            {/* Multi-Quarry Comparison Notice */}
+            <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl flex items-center justify-between text-caption text-neutral-600">
+              <div className="flex items-center gap-2">
+                <Mountain className="h-4 w-4 text-primary-800" />
+                <span>
+                  <strong>Multi-Quarry Comparison:</strong> Selecting a different quarry updates the real-time pit-head price and haulage freight in your live order summary.
+                </span>
+              </div>
+              <span className="text-[10px] font-mono font-bold uppercase text-primary-800 bg-primary-50 px-2 py-0.5 rounded border border-primary-200 shrink-0">
+                Live Pricing Active
+              </span>
+            </div>
           </div>
         );
 

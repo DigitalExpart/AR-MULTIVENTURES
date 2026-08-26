@@ -1,5 +1,6 @@
 export type TruckOwnershipType = 'COMPANY' | 'CONTRACTOR' | 'THIRD_PARTY';
 export type TruckMaintenanceStatus = 'OPERATIONAL' | 'DUE_FOR_SERVICE' | 'UNDER_MAINTENANCE' | 'GROUNDED' | 'DECOMMISSIONED';
+export type TruckAvailabilityStatus = 'AVAILABLE' | 'ASSIGNED' | 'AT_QUARRY' | 'LOADING' | 'IN_TRANSIT' | 'DELIVERING' | 'UNAVAILABLE' | 'INACTIVE';
 export type DriverAvailabilityStatus = 'AVAILABLE' | 'ASSIGNED_TO_TRIP' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
 
 export interface TruckRecord {
@@ -17,6 +18,7 @@ export interface TruckRecord {
   engineNumber?: string;
   isActive: boolean;
   maintenanceStatus: TruckMaintenanceStatus;
+  availabilityStatus?: TruckAvailabilityStatus;
   insuranceExpiry?: string;
   roadworthinessExpiry?: string;
   registrationExpiry?: string;

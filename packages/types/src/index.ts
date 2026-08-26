@@ -11,3 +11,4 @@ export * from './delivery';
 export * from './reports';
 export * from './notifications';
 export * from './exceptions';
+export * from './errors';
