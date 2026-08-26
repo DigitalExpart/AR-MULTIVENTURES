@@ -69,13 +69,15 @@ export function CustomerHomeScreen({ onNavigate }: { onNavigate?: (screen: strin
           </View>
           <View style={styles.headerBadges}>
             <DevDataBadge />
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => switchRole('DRIVER')}
-              style={styles.switchRolePill}
-            >
-              <Text style={styles.switchRoleText}>Switch to Driver 🚛</Text>
-            </TouchableOpacity>
+            {process.env.EXPO_PUBLIC_DATA_PROVIDER !== 'supabase' && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => switchRole('DRIVER')}
+                style={styles.switchRolePill}
+              >
+                <Text style={styles.switchRoleText}>Switch to Driver 🚛</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 

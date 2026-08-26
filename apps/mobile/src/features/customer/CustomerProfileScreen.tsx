@@ -53,28 +53,32 @@ export function CustomerProfileScreen({ onNavigate }: { onNavigate?: (screen: st
           </View>
         </AppCard>
 
-        {/* Switch Role Mode */}
-        <SectionHeader title="Operational Role Simulation" />
-        <AppCard style={styles.card}>
-          <Text style={styles.switchRoleDesc}>
-            Switch between Customer procurement view and Heavy Tipper Driver transit view:
-          </Text>
-          <View style={styles.roleBtnRow}>
-            <AppButton
-              title="Customer Mode"
-              onPress={() => switchRole('CUSTOMER')}
-              variant="outline"
-              size="sm"
-              style={{ flex: 1 }}
-            />
-            <AppButton
-              title="Driver Mode 🚛"
-              onPress={() => switchRole('DRIVER')}
-              size="sm"
-              style={{ flex: 1 }}
-            />
-          </View>
-        </AppCard>
+        {/* Switch Role Mode ONLY in Mock/Dev Mode */}
+        {process.env.EXPO_PUBLIC_DATA_PROVIDER !== 'supabase' && (
+          <>
+            <SectionHeader title="Operational Role Simulation (DEV ONLY)" />
+            <AppCard style={styles.card}>
+              <Text style={styles.switchRoleDesc}>
+                Switch between Customer procurement view and Heavy Tipper Driver transit view:
+              </Text>
+              <View style={styles.roleBtnRow}>
+                <AppButton
+                  title="Customer Mode"
+                  onPress={() => switchRole('CUSTOMER')}
+                  variant="outline"
+                  size="sm"
+                  style={{ flex: 1 }}
+                />
+                <AppButton
+                  title="Driver Mode 🚛"
+                  onPress={() => switchRole('DRIVER')}
+                  size="sm"
+                  style={{ flex: 1 }}
+                />
+              </View>
+            </AppCard>
+          </>
+        )}
 
         {/* Logout Action */}
         <AppButton

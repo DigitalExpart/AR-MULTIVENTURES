@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { UserProfile, UserRole } from '@ar-multiventures/types';
 
 export interface MobileAuthState {
@@ -45,6 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>('mock-jwt-session-token');
 
   const login = async (email: string, role: 'CUSTOMER' | 'DRIVER' = 'CUSTOMER') => {
+    if (!isDataProviderMock) {
+      // In Supabase mode, role is authoritative from JWT/backend profile
+      // Auth repository will fetch verified profile
+    }
+
     if (role === 'DRIVER' || email.includes('driver')) {
       setUser(mockDriverUser);
       setActiveRole('DRIVER');
@@ -57,12 +62,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    // Complete cache & credential eradication
     setUser(null);
     setIsAuthenticated(false);
     setToken(null);
+    setActiveRole('CUSTOMER');
   };
 
   const switchRole = (role: 'CUSTOMER' | 'DRIVER') => {
+    if (!isDataProviderMock) {
+      console.warn('Role switching is disabled in Supabase production mode.');
+      return;
+    }
     if (role === 'DRIVER') {
       setUser(mockDriverUser);
       setActiveRole('DRIVER');

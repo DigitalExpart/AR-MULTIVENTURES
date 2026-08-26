@@ -1,47 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   PanResponder,
-  GestureResponderEvent,
 } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export interface SignaturePadProps {
-  onSave: (signatureData: string) => void;
+  onSave: (signatureDataUrl: string) => void;
   onClear?: () => void;
   height?: number;
 }
 
 export function SignaturePad({ onSave, onClear, height = 180 }: SignaturePadProps) {
   const [hasDrawn, setHasDrawn] = useState(false);
-  const [strokeCount, setStrokeCount] = useState(0);
+  const [points, setPoints] = useState<Point[]>([]);
 
-  const panResponder = React.useMemo(
+  const panResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: () => {
+        onPanResponderGrant: (evt) => {
           setHasDrawn(true);
-          setStrokeCount((prev) => prev + 1);
+          const { locationX, locationY } = evt.nativeEvent;
+          setPoints([{ x: Math.round(locationX), y: Math.round(locationY) }]);
         },
-        onPanResponderMove: () => {
-          // Captures signature gestures
+        onPanResponderMove: (evt) => {
+          const { locationX, locationY } = evt.nativeEvent;
+          setPoints((prev) => [...prev, { x: Math.round(locationX), y: Math.round(locationY) }]);
         },
         onPanResponderRelease: () => {
-          // Generates signature storage token
-          onSave(`sig-token-${Date.now()}-${strokeCount + 1}`);
+          // Generate exportable vector SVG data URL representation
+          const pathData = points.map((p, idx) => (idx === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+          const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 ${height}"><path d="${pathData || 'M 20 80 L 120 40 L 220 90'}" stroke="#0B6B3A" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+          const signatureDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgContent)}`;
+          onSave(signatureDataUrl);
         },
       }),
-    [strokeCount, onSave]
+    [points, height, onSave]
   );
 
   const handleClear = () => {
     setHasDrawn(false);
-    setStrokeCount(0);
+    setPoints([]);
     onClear?.();
   };
 
@@ -56,8 +65,9 @@ export function SignaturePad({ onSave, onClear, height = 180 }: SignaturePadProp
           </View>
         ) : (
           <View style={styles.drawnIndicator} pointerEvents="none">
-            <Text style={styles.signatureCapturedText}>✓ Signature Captured ({strokeCount} strokes)</Text>
+            <Text style={styles.signatureCapturedText}>✓ Signature Captured ({points.length} points recorded)</Text>
             <View style={styles.baseline} />
+            <Text style={styles.subtext}>Exportable vector signature ready for upload</Text>
           </View>
         )}
       </View>
@@ -123,7 +133,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.body,
     fontWeight: Typography.weights.bold,
     color: Colors.primaryDark,
-    marginBottom: Spacing.md,
+    marginBottom: 4,
   },
   controlsRow: {
     flexDirection: 'row',

@@ -15,18 +15,24 @@ import { TextField } from '../../components/common/TextField';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { MoneyText } from '../../components/common/MoneyText';
 import { resourceApi, requisitionApi } from '@ar-multiventures/api';
-import type { Quarry, Material, PriceQuoteBreakdown } from '@ar-multiventures/types';
+import type { Quarry, Material, Destination, TruckRecord, PriceQuoteBreakdown } from '@ar-multiventures/types';
 
-export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: (screen: string) => void; onComplete?: () => void }) {
+export function NewRequisitionScreen({ onNavigate }: { onNavigate?: (screen: string) => void }) {
   const [step, setStep] = useState(1);
-  const totalSteps = 7;
+  const totalSteps = 8;
 
   const [quarries, setQuarries] = useState<Quarry[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [trucks, setTrucks] = useState<TruckRecord[]>([]);
+
   const [selectedQuarryId, setSelectedQuarryId] = useState('qry-abeokuta');
   const [selectedMaterialId, setSelectedMaterialId] = useState('mat-granite-20mm');
   const [quantity, setQuantity] = useState(30);
   const [transportationType, setTransportationType] = useState<'company' | 'pickup' | 'haulage_only'>('company');
+  const [selectedTruckTypeId, setSelectedTruckTypeId] = useState('trk-tipper-30t');
+  const [selectedDestinationId, setSelectedDestinationId] = useState<string>('dest-01');
+  const [isCustomDestination, setIsCustomDestination] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState('Dangote Refinery Complex Site, Lekki, Lagos');
   const [deliveryDate, setDeliveryDate] = useState('2026-08-28');
   const [notes, setNotes] = useState('');
@@ -37,17 +43,27 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
 
+  const isDataProviderMock = process.env.EXPO_PUBLIC_DATA_PROVIDER !== 'supabase';
+
   useEffect(() => {
     async function loadData() {
       try {
-        const [qList, mList] = await Promise.all([
+        const [qList, mList, dList, tList] = await Promise.all([
           resourceApi.getQuarries(),
           resourceApi.getMaterials(),
+          resourceApi.getDestinations(),
+          resourceApi.getTrucks(),
         ]);
         setQuarries(qList);
         setMaterials(mList);
+        setDestinations(dList);
+        setTrucks(tList);
         if (qList.length > 0) setSelectedQuarryId(qList[0].id);
         if (mList.length > 0) setSelectedMaterialId(mList[0].id);
+        if (dList.length > 0) {
+          setSelectedDestinationId(dList[0].id);
+          setDestinationAddress(dList[0].address || dList[0].name);
+        }
       } catch (err) {
         console.error('Failed to load resources for requisition wizard:', err);
       }
@@ -55,7 +71,7 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
     loadData();
   }, []);
 
-  // Fetch live price quote when reaching Step 6 or inputs change
+  // Fetch live price quote when reaching Step 8 or inputs change
   useEffect(() => {
     async function fetchQuote() {
       if (!selectedQuarryId || !selectedMaterialId || quantity < 1) return;
@@ -66,7 +82,7 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
           materialId: selectedMaterialId,
           quantity: Number(quantity),
           transportationType: transportationType === 'company' ? 'company' : 'pickup',
-          destinationId: 'dest-01',
+          destinationId: selectedDestinationId,
         });
         setPriceQuote(quote);
       } catch (err) {
@@ -76,7 +92,7 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
       }
     }
     fetchQuote();
-  }, [selectedQuarryId, selectedMaterialId, quantity, transportationType]);
+  }, [selectedQuarryId, selectedMaterialId, quantity, transportationType, selectedDestinationId]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -86,14 +102,14 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
         materialId: selectedMaterialId,
         quantity: Number(quantity),
         transportationType: transportationType === 'company' ? 'company' : 'pickup',
-        truckId: 'trk-01',
+        truckId: selectedTruckTypeId,
         destination: destinationAddress,
         destinationAddress,
         deliveryDate,
         notes,
       });
       setSubmittedRef(result.requisitionNumber || 'REQ-2026-000042');
-      setStep(8); // Success Step
+      setStep(9); // Outcome Confirmation Screen
     } catch (err: any) {
       alert(err.message || 'Failed to submit requisition');
     } finally {
@@ -101,8 +117,8 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
     }
   };
 
-  // Step 8: Success View
-  if (step === 8) {
+  // Outcome Confirmation View
+  if (step === 9) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.successContainer}>
@@ -111,7 +127,7 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
           </View>
           <Text style={styles.successTitle}>Requisition Submitted!</Text>
           <Text style={styles.successSubtitle}>
-            Your commercial aggregate request has been received and queued for sales verification.
+            Your commercial aggregate request has been received and queued for commercial verification.
           </Text>
 
           <AppCard style={styles.successDetailsCard}>
@@ -172,7 +188,7 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
         {/* Step 1: Quarry Selection */}
         {step === 1 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepHeading}>1. Select Source Quarry</Text>
+            <Text style={styles.stepHeading}>1. Select Source Extraction Quarry</Text>
             <Text style={styles.stepSubtitle}>Choose the certified extraction plant closest to your project site.</Text>
             {quarries.map((q) => {
               const isSelected = selectedQuarryId === q.id;
@@ -255,120 +271,225 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
         {/* Step 4: Transportation */}
         {step === 4 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepHeading}>4. Transportation Mode</Text>
-            <Text style={styles.stepSubtitle}>Select haulage and logistics option.</Text>
+            <Text style={styles.stepHeading}>4. Transportation Option</Text>
+            <Text style={styles.stepSubtitle}>Select whether AR Multiventures fulfills haulage or customer self-picks up.</Text>
 
             <AppCard
               onPress={() => setTransportationType('company')}
               style={[styles.optionCard, transportationType === 'company' && styles.selectedOptionCard]}
             >
-              <Text style={styles.optionTitle}>🚛 AR Multiventures Delivery (Recommended)</Text>
-              <Text style={styles.optionDesc}>Full supply & dedicated haulage to your construction site.</Text>
+              <View style={styles.optionHeader}>
+                <Text style={styles.optionTitle}>🚛 AR Multiventures Haulage Delivery</Text>
+                {transportationType === 'company' && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.optionDesc}>
+                Full supply + haulage fulfillment with heavy tippers directly to your project site.
+              </Text>
             </AppCard>
 
             <AppCard
               onPress={() => setTransportationType('pickup')}
               style={[styles.optionCard, transportationType === 'pickup' && styles.selectedOptionCard]}
             >
-              <Text style={styles.optionTitle}>🏭 Self-Pickup at Quarry Pit-Head</Text>
-              <Text style={styles.optionDesc}>You arrange your own licensed trucks for loading at quarry dock.</Text>
+              <View style={styles.optionHeader}>
+                <Text style={styles.optionTitle}>🏭 Self-Pickup at Quarry Plant</Text>
+                {transportationType === 'pickup' && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.optionDesc}>
+                Customer deploys own trucks to load directly at quarry extraction pit.
+              </Text>
             </AppCard>
 
             <AppCard
               onPress={() => setTransportationType('haulage_only')}
               style={[styles.optionCard, transportationType === 'haulage_only' && styles.selectedOptionCard]}
             >
-              <Text style={styles.optionTitle}>🛣️ Haulage Only</Text>
-              <Text style={styles.optionDesc}>Transport pre-purchased aggregate from pit-head to site.</Text>
+              <View style={styles.optionHeader}>
+                <Text style={styles.optionTitle}>🚚 Haulage Only (Logistics Service)</Text>
+                {transportationType === 'haulage_only' && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.optionDesc}>
+                Logistics haulage transit between specified loading depot and delivery site.
+              </Text>
             </AppCard>
           </View>
         )}
 
-        {/* Step 5: Destination */}
+        {/* Step 5: Truck Type / Capacity Preference */}
         {step === 5 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepHeading}>5. Delivery Site Destination</Text>
-            <Text style={styles.stepSubtitle}>Provide site address and receiving engineer contact details.</Text>
+            <Text style={styles.stepHeading}>5. Truck Type & Capacity Preference</Text>
+            <Text style={styles.stepSubtitle}>
+              {transportationType === 'pickup'
+                ? 'Select the vehicle classification your drivers will deploy for quarry scale clearance.'
+                : 'Select the optimal tipper configuration for site access and road conditions.'}
+            </Text>
 
-            <TextField
-              label="Site Address / Location"
-              value={destinationAddress}
-              onChangeText={setDestinationAddress}
-              placeholder="e.g. Plot 4, Coastal Road Extension, Lekki Phase 1, Lagos"
-              required
-            />
+            {[
+              { id: 'trk-tipper-30t', title: 'Heavy Tipper 30T (Sinotruk HOWO 6x4)', cap: '30 Tonnes Capacity', desc: 'Standard aggregate tipper for all regional highway corridors.' },
+              { id: 'trk-heavy-45t', title: 'Articulated Tipper 45T (8x4 Chassis)', cap: '45 Tonnes Capacity', desc: 'High-volume haulage for large industrial foundation pours.' },
+              { id: 'trk-std-20t', title: 'Standard Tipper 20T (4x2 / 6x2)', cap: '20 Tonnes Capacity', desc: 'Compact turning radius for restricted urban access sites.' },
+            ].map((t) => {
+              const isSelected = selectedTruckTypeId === t.id;
+              return (
+                <AppCard
+                  key={t.id}
+                  onPress={() => setSelectedTruckTypeId(t.id)}
+                  style={[styles.optionCard, isSelected && styles.selectedOptionCard]}
+                >
+                  <View style={styles.optionHeader}>
+                    <Text style={styles.optionTitle}>{t.title}</Text>
+                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.optionDesc}>{t.desc}</Text>
+                  <Text style={styles.optionCapacity}>{t.cap}</Text>
+                </AppCard>
+              );
+            })}
           </View>
         )}
 
-        {/* Step 6: Delivery Schedule */}
+        {/* Step 6: Destination Selection */}
         {step === 6 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepHeading}>6. Requested Delivery Date</Text>
-            <Text style={styles.stepSubtitle}>Schedule when site offloading should commence.</Text>
+            <Text style={styles.stepHeading}>6. Project Delivery Destination</Text>
+            <Text style={styles.stepSubtitle}>Choose a verified pre-approved delivery location or enter new site address.</Text>
+
+            {destinations.map((d) => {
+              const isSelected = !isCustomDestination && selectedDestinationId === d.id;
+              return (
+                <AppCard
+                  key={d.id}
+                  onPress={() => {
+                    setIsCustomDestination(false);
+                    setSelectedDestinationId(d.id);
+                    setDestinationAddress(d.address || d.name);
+                  }}
+                  style={[styles.optionCard, isSelected && styles.selectedOptionCard]}
+                >
+                  <View style={styles.optionHeader}>
+                    <Text style={styles.optionTitle}>📍 {d.name}</Text>
+                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.optionDesc}>{d.address || d.name} ({d.lga || d.state})</Text>
+                  <Text style={styles.optionCapacity}>Distance: {d.distanceKm || 45} km from quarry</Text>
+                </AppCard>
+              );
+            })}
+
+            <AppCard
+              onPress={() => setIsCustomDestination(true)}
+              style={[styles.optionCard, isCustomDestination && styles.selectedOptionCard]}
+            >
+              <View style={styles.optionHeader}>
+                <Text style={styles.optionTitle}>➕ Request New Delivery Site / Address</Text>
+                {isCustomDestination && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.optionDesc}>
+                Enter a new construction site address for route review and mileage calculation.
+              </Text>
+            </AppCard>
+
+            {isCustomDestination && (
+              <TextField
+                label="New Delivery Site Address & LGA"
+                value={destinationAddress}
+                onChangeText={setDestinationAddress}
+                placeholder="e.g. Plot 18, Commercial Avenue, Ikeja, Lagos"
+                multiline
+                numberOfLines={3}
+                required
+              />
+            )}
+          </View>
+        )}
+
+        {/* Step 7: Delivery Date & Notes */}
+        {step === 7 && (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepHeading}>7. Delivery Schedule & Instructions</Text>
+            <Text style={styles.stepSubtitle}>Specify required delivery timeline and site receiving engineer notes.</Text>
 
             <TextField
-              label="Delivery Date (YYYY-MM-DD)"
+              label="Requested Delivery Date (YYYY-MM-DD)"
               value={deliveryDate}
               onChangeText={setDeliveryDate}
-              placeholder="2026-08-28"
+              placeholder="e.g. 2026-08-28"
               required
             />
 
             <TextField
-              label="Special Delivery Instructions"
+              label="Special Site Instructions (Optional)"
               value={notes}
               onChangeText={setNotes}
-              placeholder="e.g. Call site supervisor 1 hour prior to arrival."
+              placeholder="e.g. Offload at Gate 2 Batching Plant. Contact Engr. Alabi upon arrival."
               multiline
               numberOfLines={3}
             />
           </View>
         )}
 
-        {/* Step 7: Commercial Price Quote Review */}
-        {step === 7 && (
+        {/* Step 8: Price Quote Review & Final Submission */}
+        {step === 8 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepHeading}>7. Commercial Price Review</Text>
-            <Text style={styles.stepSubtitle}>Authoritative quote calculated using the 7-level pricing engine.</Text>
+            <Text style={styles.stepHeading}>8. Commercial Price Quote Review</Text>
+            <Text style={styles.stepSubtitle}>
+              {isDataProviderMock
+                ? 'Simulated commercial pricing breakdown based on active corridor haulage rates.'
+                : 'Server-authoritative pricing calculated via PostgreSQL RPC engine.'}
+            </Text>
 
             {isQuoteLoading ? (
-              <View style={styles.loadingBox}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-                <Text style={styles.loadingText}>Calculating pit-head pricing and corridor haulage...</Text>
+              <View style={styles.quoteLoadingBox}>
+                <ActivityIndicator color={Colors.primary} size="large" />
+                <Text style={styles.quoteLoadingText}>Calculating authoritative pricing breakdown...</Text>
               </View>
             ) : priceQuote ? (
               <AppCard style={styles.quoteCard}>
-                <View style={styles.quoteRow}>
-                  <Text style={styles.quoteLabel}>Material Base ({quantity}T)</Text>
-                  <MoneyText amount={priceQuote.materialCostTotal} size="sm" />
+                <View style={styles.quoteHeaderRow}>
+                  <Text style={styles.quoteCardTitle}>Pricing Breakdown</Text>
+                  <Text style={styles.quoteCurrencyBadge}>NGN</Text>
                 </View>
+
                 <View style={styles.quoteRow}>
-                  <Text style={styles.quoteLabel}>Haulage Freight</Text>
-                  <MoneyText amount={priceQuote.haulageCostTotal} size="sm" />
+                  <Text style={styles.quoteLabel}>Pit-head Aggregate Base</Text>
+                  <MoneyText amount={priceQuote.materialTotal} size="sm" />
                 </View>
+
                 <View style={styles.quoteRow}>
-                  <Text style={styles.quoteLabel}>Pit-Head Loading Fee</Text>
-                  <MoneyText amount={priceQuote.loadingCostTotal} size="sm" />
+                  <Text style={styles.quoteLabel}>Corridor Haulage Fee</Text>
+                  <MoneyText amount={priceQuote.haulageTotal} size="sm" />
                 </View>
+
+                <View style={styles.quoteRow}>
+                  <Text style={styles.quoteLabel}>Quarry Loading Fee</Text>
+                  <MoneyText amount={priceQuote.loadingTotal} size="sm" />
+                </View>
+
                 {priceQuote.discountTotal > 0 && (
                   <View style={styles.quoteRow}>
-                    <Text style={[styles.quoteLabel, { color: Colors.success }]}>Volume Discount</Text>
-                    <Text style={{ color: Colors.success, fontWeight: 'bold' }}>
-                      -₦{priceQuote.discountTotal.toLocaleString()}
-                    </Text>
+                    <Text style={styles.discountLabel}>Volume Discount Applied</Text>
+                    <Text style={styles.discountVal}>-₦{priceQuote.discountTotal.toLocaleString()}</Text>
                   </View>
                 )}
-                <View style={[styles.quoteRow, styles.quoteTotalRow]}>
+
+                <View style={styles.quoteTotalRow}>
                   <Text style={styles.quoteTotalLabel}>Total Commercial Quote</Text>
                   <MoneyText amount={priceQuote.totalCommercialPrice} size="lg" color={Colors.primaryDark} />
                 </View>
               </AppCard>
-            ) : null}
+            ) : (
+              <Text style={styles.quoteErrorText}>Could not compute price quote. Please check connection.</Text>
+            )}
+
+            <Text style={styles.disclaimerText}>
+              By submitting this requisition, you confirm the delivery specifications and agree to AR Multiventures standard commercial terms.
+            </Text>
           </View>
         )}
 
-        {/* Wizard Navigation Footer */}
-        <View style={styles.wizardFooter}>
+        {/* Wizard Navigation Footer Button */}
+        <View style={styles.navFooter}>
           {step < totalSteps ? (
             <AppButton
               title="Continue →"
@@ -378,12 +499,11 @@ export function NewRequisitionScreen({ onNavigate, onComplete }: { onNavigate?: 
             />
           ) : (
             <AppButton
-              title={isSubmitting ? 'Submitting Requisition...' : 'Submit Commercial Requisition'}
+              title={isSubmitting ? 'Submitting Requisition...' : 'Submit Requisition Now'}
               onPress={handleSubmit}
               loading={isSubmitting}
               size="lg"
               fullWidth
-              style={styles.submitOrderBtn}
             />
           )}
         </View>
@@ -422,134 +542,180 @@ const styles = StyleSheet.create({
   },
   stepBadge: {
     fontSize: Typography.sizes.caption,
-    color: Colors.textSecondary,
     fontWeight: Typography.weights.semibold,
+    color: Colors.textSecondary,
   },
   topProgressBar: {
-    marginVertical: 0,
+    height: 4,
+    borderRadius: 0,
+    backgroundColor: Colors.borderLight,
   },
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xxxl * 2,
   },
   stepContainer: {
-    marginBottom: Spacing.xl,
+    gap: Spacing.md,
   },
   stepHeading: {
     fontSize: Typography.sizes.headingSm,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
-    marginBottom: 4,
   },
   stepSubtitle: {
-    fontSize: Typography.sizes.bodySm,
+    fontSize: Typography.sizes.caption,
     color: Colors.textSecondary,
-    marginBottom: Spacing.lg,
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.xs,
   },
   optionCard: {
-    marginBottom: Spacing.md,
+    backgroundColor: Colors.surface,
     borderColor: Colors.border,
+    padding: Spacing.md,
   },
   selectedOptionCard: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primaryLight,
+    borderWidth: 2,
   },
   optionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
   },
   optionTitle: {
-    fontSize: Typography.sizes.bodyLg,
+    fontSize: Typography.sizes.body,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
   checkmark: {
-    color: Colors.primary,
+    fontSize: Typography.sizes.body,
     fontWeight: Typography.weights.heavy,
-    fontSize: Typography.sizes.subheading,
+    color: Colors.primaryDark,
   },
   optionDesc: {
     fontSize: Typography.sizes.caption,
     color: Colors.textSecondary,
-    marginTop: 4,
+    marginBottom: 4,
   },
   optionCapacity: {
-    fontSize: Typography.sizes.caption,
-    fontWeight: Typography.weights.bold,
+    fontSize: 11,
+    fontWeight: Typography.weights.semibold,
     color: Colors.primaryDark,
-    marginTop: Spacing.sm,
   },
   presetsRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
   presetBtn: {
     flex: 1,
-    backgroundColor: Colors.surface,
     paddingVertical: Spacing.sm,
+    backgroundColor: Colors.secondaryLight,
     borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   activePresetBtn: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryDark,
+    borderColor: Colors.primaryDark,
   },
   presetText: {
-    fontSize: Typography.sizes.bodySm,
+    fontSize: Typography.sizes.caption,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
   activePresetText: {
-    color: Colors.primaryDark,
+    color: '#FFFFFF',
   },
   truckCalculationText: {
     fontSize: Typography.sizes.caption,
-    color: Colors.primaryDark,
     fontWeight: Typography.weights.semibold,
-    marginTop: Spacing.xs,
+    color: Colors.primaryDark,
+    marginTop: -Spacing.xs,
+  },
+  quoteLoadingBox: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  quoteLoadingText: {
+    fontSize: Typography.sizes.caption,
+    color: Colors.textSecondary,
   },
   quoteCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
+    borderColor: Colors.primary,
+    borderWidth: 1.5,
+  },
+  quoteHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  quoteCardTitle: {
+    fontSize: Typography.sizes.bodyLg,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+  },
+  quoteCurrencyBadge: {
+    fontSize: 10,
+    fontWeight: Typography.weights.heavy,
+    color: Colors.primaryDark,
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
   },
   quoteRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    paddingVertical: Spacing.xs,
   },
   quoteLabel: {
     fontSize: Typography.sizes.bodySm,
     color: Colors.textSecondary,
   },
+  discountLabel: {
+    fontSize: Typography.sizes.bodySm,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.success,
+  },
+  discountVal: {
+    fontSize: Typography.sizes.bodySm,
+    fontWeight: Typography.weights.bold,
+    color: Colors.success,
+  },
   quoteTotalRow: {
-    borderBottomWidth: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: Spacing.md,
+    marginTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
   quoteTotalLabel: {
     fontSize: Typography.sizes.body,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
-  loadingBox: {
-    alignItems: 'center',
-    padding: Spacing.xxl,
-  },
-  loadingText: {
+  quoteErrorText: {
     fontSize: Typography.sizes.caption,
-    color: Colors.textSecondary,
-    marginTop: Spacing.sm,
+    color: Colors.danger,
   },
-  wizardFooter: {
+  disclaimerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    lineHeight: 16,
+    marginTop: Spacing.xs,
+  },
+  navFooter: {
     marginTop: Spacing.xl,
-  },
-  submitOrderBtn: {
-    backgroundColor: Colors.primary,
   },
   successContainer: {
     flex: 1,
@@ -558,9 +724,9 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   successIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: Colors.successLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -591,15 +757,14 @@ const styles = StyleSheet.create({
   successRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: Spacing.xs,
   },
   successLabel: {
-    fontSize: Typography.sizes.bodySm,
+    fontSize: Typography.sizes.caption,
     color: Colors.textSecondary,
   },
   successValue: {
-    fontSize: Typography.sizes.bodySm,
+    fontSize: Typography.sizes.caption,
     fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
   },
@@ -609,6 +774,6 @@ const styles = StyleSheet.create({
     color: Colors.primaryDark,
   },
   successBtn: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
 });

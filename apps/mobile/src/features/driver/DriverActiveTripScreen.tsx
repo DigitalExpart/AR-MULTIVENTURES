@@ -121,6 +121,21 @@ export function DriverActiveTripScreen({
 
   const actionConfig = getActionConfig();
 
+  const handleCallSite = async () => {
+    const phone = '+2348023349988';
+    const url = `tel:${phone}`;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        alert(`Telephony is not available on this device. Site Engineer Contact: ${phone}`);
+      }
+    } catch (err) {
+      alert(`Could not place call: ${err}`);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.headerBar}>
@@ -159,7 +174,7 @@ export function DriverActiveTripScreen({
             </View>
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => Linking.openURL('tel:+2348023349988')}
+              onPress={handleCallSite}
               style={styles.callBtn}
             >
               <Text style={styles.callBtnText}>📞 Call Site</Text>

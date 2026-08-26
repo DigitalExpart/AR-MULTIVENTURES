@@ -129,26 +129,28 @@ export function LoginScreen({ navigation }: { navigation?: any }) {
               style={styles.signInBtn}
             />
 
-            {/* Quick Demo Credentials in Mock Mode */}
-            <View style={styles.demoSection}>
-              <Text style={styles.demoHeading}>QUICK DEV ACCOUNTS</Text>
-              <View style={styles.demoButtonsRow}>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={handleQuickDemoCustomer}
-                  style={styles.demoPill}
-                >
-                  <Text style={styles.demoPillText}>Fill Customer (BuildCorp)</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={handleQuickDemoDriver}
-                  style={styles.demoPill}
-                >
-                  <Text style={styles.demoPillText}>Fill Driver (Musa)</Text>
-                </TouchableOpacity>
+            {/* Quick Demo Credentials ONLY in Mock Mode */}
+            {isDataProviderMock && (
+              <View style={styles.demoSection}>
+                <Text style={styles.demoHeading}>QUICK DEV ACCOUNTS</Text>
+                <View style={styles.demoButtonsRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleQuickDemoCustomer}
+                    style={styles.demoPill}
+                  >
+                    <Text style={styles.demoPillText}>Fill Customer (BuildCorp)</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleQuickDemoDriver}
+                    style={styles.demoPill}
+                  >
+                    <Text style={styles.demoPillText}>Fill Driver (Musa)</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

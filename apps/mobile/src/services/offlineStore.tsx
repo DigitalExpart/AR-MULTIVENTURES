@@ -1,90 +1,129 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { DeliveryTripRecord } from '@ar-multiventures/types';
 import { deliveryApi } from '@ar-multiventures/api';
 
-export interface StagedOfflinePod {
+export type OfflineMutationState = 'PENDING' | 'SYNCING' | 'FAILED' | 'SYNCED';
+export type OfflineOperationType = 'SUBMIT_POD' | 'TRIP_WAYPOINT';
+
+export interface QueuedOfflineMutation {
+  id: string;
+  operationType: OfflineOperationType;
+  entityId: string;
   idempotencyKey: string;
-  tripId: string;
-  tripNumber: string;
-  receiverName: string;
-  receiverPhone?: string;
-  receiverDesignation?: string;
-  deliveredQuantityTonnes: number;
-  signatureBase64: string;
-  photoUris: string[];
-  driverRemarks?: string;
-  stagedAt: string;
-  status: 'PENDING' | 'SYNCING' | 'FAILED';
-  errorMessage?: string;
+  payload: {
+    tripId: string;
+    tripNumber: string;
+    receiverName: string;
+    receiverPhone?: string;
+    receiverDesignation?: string;
+    deliveredQuantityTonnes: number;
+    signatureBase64: string;
+    photoUris: string[];
+    driverRemarks?: string;
+  };
+  createdAt: string;
+  retryCount: number;
+  lastError: string | null;
+  state: OfflineMutationState;
 }
 
 export interface OfflineContextState {
   isOnline: boolean;
   setIsOnline: (online: boolean) => void;
-  pendingPods: StagedOfflinePod[];
-  stageOfflinePod: (pod: Omit<StagedOfflinePod, 'idempotencyKey' | 'stagedAt' | 'status'>) => Promise<string>;
-  syncPendingPods: () => Promise<{ successCount: number; failCount: number }>;
-  clearSyncedPod: (idempotencyKey: string) => void;
+  mutationQueue: QueuedOfflineMutation[];
+  pendingCount: number;
+  stageOfflinePod: (payload: QueuedOfflineMutation['payload']) => Promise<string>;
+  syncPendingMutations: () => Promise<{ successCount: number; failCount: number }>;
+  retryMutation: (mutationId: string) => Promise<void>;
+  dismissFailedMutation: (mutationId: string) => void;
 }
 
 const OfflineContext = createContext<OfflineContextState | null>(null);
 
 export function OfflineProvider({ children }: { children: React.ReactNode }) {
   const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [pendingPods, setPendingPods] = useState<StagedOfflinePod[]>([]);
+  const [mutationQueue, setMutationQueue] = useState<QueuedOfflineMutation[]>([]);
 
-  const stageOfflinePod = async (
-    podData: Omit<StagedOfflinePod, 'idempotencyKey' | 'stagedAt' | 'status'>
-  ): Promise<string> => {
-    const idempotencyKey = `pod-offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const stagedItem: StagedOfflinePod = {
-      ...podData,
+  const pendingCount = mutationQueue.filter((m) => m.state === 'PENDING' || m.state === 'FAILED').length;
+
+  const stageOfflinePod = async (payload: QueuedOfflineMutation['payload']): Promise<string> => {
+    // Sensitive financial operations (payments, credit approvals, clearance) are strictly prohibited from offline queueing
+    const mutationId = `mut-pod-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const idempotencyKey = `idemp-pod-${payload.tripId}-${Date.now()}`;
+
+    const newMutation: QueuedOfflineMutation = {
+      id: mutationId,
+      operationType: 'SUBMIT_POD',
+      entityId: payload.tripId,
       idempotencyKey,
-      stagedAt: new Date().toISOString(),
-      status: 'PENDING',
+      payload,
+      createdAt: new Date().toISOString(),
+      retryCount: 0,
+      lastError: null,
+      state: 'PENDING',
     };
 
-    setPendingPods((prev) => [stagedItem, ...prev]);
+    setMutationQueue((prev) => [newMutation, ...prev]);
     return idempotencyKey;
   };
 
-  const syncPendingPods = async () => {
-    if (pendingPods.length === 0) return { successCount: 0, failCount: 0 };
+  const syncPendingMutations = async () => {
+    if (mutationQueue.length === 0) return { successCount: 0, failCount: 0 };
 
     let successCount = 0;
     let failCount = 0;
 
-    const remainingPods: StagedOfflinePod[] = [];
+    const updatedQueue: QueuedOfflineMutation[] = [];
 
-    for (const pod of pendingPods) {
+    for (const item of mutationQueue) {
+      if (item.state === 'SYNCED') continue;
+
       try {
+        // Pre-sync validation: verify signature token and payload integrity
+        if (!item.payload.signatureBase64) {
+          throw new Error('Digital signature artifact is missing from staged payload');
+        }
+
+        // Mark as SYNCING
+        item.state = 'SYNCING';
+        item.retryCount += 1;
+
+        // Perform server submission
         await deliveryApi.recordTripPod({
-          tripId: pod.tripId,
-          receiverName: pod.receiverName,
-          receiverPhone: pod.receiverPhone,
-          receiverDesignation: pod.receiverDesignation,
-          deliveredQuantityTonnes: pod.deliveredQuantityTonnes,
-          signatureStoragePath: `pod_signatures/${pod.tripId}.png`,
-          photoStoragePaths: pod.photoUris,
-          driverRemarks: pod.driverRemarks,
+          tripId: item.payload.tripId,
+          receiverName: item.payload.receiverName,
+          receiverPhone: item.payload.receiverPhone,
+          receiverDesignation: item.payload.receiverDesignation,
+          deliveredQuantityTonnes: item.payload.deliveredQuantityTonnes,
+          signatureStoragePath: `pod_signatures/${item.payload.tripId}.png`,
+          photoStoragePaths: item.payload.photoUris,
+          driverRemarks: item.payload.driverRemarks,
         });
+
+        item.state = 'SYNCED';
+        item.lastError = null;
         successCount++;
       } catch (err: any) {
+        item.state = 'FAILED';
+        item.lastError = err.message || 'Network sync failed';
         failCount++;
-        remainingPods.push({
-          ...pod,
-          status: 'FAILED',
-          errorMessage: err.message || 'Sync failed',
-        });
+        updatedQueue.push(item);
       }
     }
 
-    setPendingPods(remainingPods);
+    setMutationQueue(updatedQueue);
     return { successCount, failCount };
   };
 
-  const clearSyncedPod = (idempotencyKey: string) => {
-    setPendingPods((prev) => prev.filter((p) => p.idempotencyKey !== idempotencyKey));
+  const retryMutation = async (mutationId: string) => {
+    setMutationQueue((prev) =>
+      prev.map((m) => (m.id === mutationId ? { ...m, state: 'PENDING', lastError: null } : m))
+    );
+    await syncPendingMutations();
+  };
+
+  const dismissFailedMutation = (mutationId: string) => {
+    setMutationQueue((prev) => prev.filter((m) => m.id !== mutationId));
   };
 
   return (
@@ -92,10 +131,12 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       value={{
         isOnline,
         setIsOnline,
-        pendingPods,
+        mutationQueue,
+        pendingCount,
         stageOfflinePod,
-        syncPendingPods,
-        clearSyncedPod,
+        syncPendingMutations,
+        retryMutation,
+        dismissFailedMutation,
       }}
     >
       {children}

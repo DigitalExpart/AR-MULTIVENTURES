@@ -150,24 +150,17 @@ export function CustomerPaymentsScreen({
           </AppCard>
         )}
 
-        {/* Corporate Bank Account Details */}
+        {/* Corporate Bank Transfer Guidelines */}
         <AppCard style={styles.bankInfoCard}>
-          <Text style={styles.bankHeaderTitle}>Official Corporate Bank Account</Text>
+          <Text style={styles.bankHeaderTitle}>Corporate Bank Transfer (NIP / RTGS)</Text>
           <Text style={styles.bankDesc}>
-            For direct NIP transfers, please remit exact invoice amount and include invoice reference in remark:
+            Official corporate bank account details and wire transfer instructions will be provided directly by AR Multiventures finance administration for commercial settlements.
           </Text>
 
-          <View style={styles.bankDetailRow}>
-            <Text style={styles.bankLabel}>Bank Name:</Text>
-            <Text style={styles.bankValue}>First Bank of Nigeria</Text>
-          </View>
-          <View style={styles.bankDetailRow}>
-            <Text style={styles.bankLabel}>Account Number:</Text>
-            <Text style={styles.bankValueBold}>2034991822</Text>
-          </View>
-          <View style={styles.bankDetailRow}>
-            <Text style={styles.bankLabel}>Account Name:</Text>
-            <Text style={styles.bankValue}>AR MULTIVENTURES LIMITED</Text>
+          <View style={styles.bankNoticeBox}>
+            <Text style={styles.bankNoticeText}>
+              ℹ️ To remit payments via direct bank transfer, request current verified corporate account numbers from your dedicated account officer or upload your stamped bank deposit slip below.
+            </Text>
           </View>
         </AppCard>
 
@@ -324,20 +317,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 2,
   },
-  bankLabel: {
-    fontSize: Typography.sizes.caption,
-    color: Colors.textSecondary,
+  bankNoticeBox: {
+    backgroundColor: '#EFF6FF',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.xs,
   },
-  bankValue: {
-    fontSize: Typography.sizes.caption,
-    fontWeight: Typography.weights.semibold,
-    color: Colors.textPrimary,
-  },
-  bankValueBold: {
-    fontSize: Typography.sizes.bodySm,
-    fontWeight: Typography.weights.heavy,
-    color: Colors.primaryDark,
-    letterSpacing: 0.5,
+  bankNoticeText: {
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 16,
   },
   historyCard: {
     backgroundColor: Colors.surface,

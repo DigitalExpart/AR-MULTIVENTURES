@@ -18,16 +18,16 @@ export function DevDataBadge() {
 }
 
 export function OfflineBanner() {
-  const { isOnline, pendingPods, syncPendingPods } = useOffline();
+  const { isOnline, mutationQueue, pendingCount, syncPendingMutations } = useOffline();
   const [isSyncing, setIsSyncing] = React.useState(false);
 
   const handleSync = async () => {
     setIsSyncing(true);
-    await syncPendingPods();
+    await syncPendingMutations();
     setIsSyncing(false);
   };
 
-  if (isOnline && pendingPods.length === 0) return null;
+  if (isOnline && pendingCount === 0) return null;
 
   return (
     <View style={[styles.bannerContainer, !isOnline ? styles.offlineBg : styles.syncBg]}>
@@ -35,9 +35,9 @@ export function OfflineBanner() {
         <Text style={styles.bannerText}>
           {!isOnline
             ? '⚠️ OFFLINE MODE — Actions staged locally'
-            : `🔄 ${pendingPods.length} pending POD${pendingPods.length === 1 ? '' : 's'} to sync`}
+            : `🔄 ${pendingCount} pending mutation${pendingCount === 1 ? '' : 's'} to sync`}
         </Text>
-        {isOnline && pendingPods.length > 0 && (
+        {isOnline && pendingCount > 0 && (
           <TouchableOpacity activeOpacity={0.7} onPress={handleSync} disabled={isSyncing} style={styles.syncBtn}>
             <Text style={styles.syncBtnText}>{isSyncing ? 'Syncing...' : 'Sync Now'}</Text>
           </TouchableOpacity>
