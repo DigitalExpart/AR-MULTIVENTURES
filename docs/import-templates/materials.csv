@@ -1,0 +1,7 @@
+name,code,category,specification,unit,density_ton_per_cbm,is_active
+"Granite 3/4"" (20mm)",MAT-GRN-20,AGGREGATE,"Standard 20mm aggregate for reinforced concrete",TONNE,1.60,true
+"Granite 1/2"" (12mm)",MAT-GRN-12,AGGREGATE,"12mm aggregate for precast and concrete pavement",TONNE,1.55,true
+"Granite 1"" (25mm)",MAT-GRN-25,AGGREGATE,"25mm coarse aggregate for mass concrete foundations",TONNE,1.65,true
+Stone Base,MAT-STN-BASE,ROAD_BASE,"0-40mm graded crushed stone for road pavement",TONNE,1.75,true
+Granite Dust (0-5mm),MAT-GRN-DUST,FINE_AGGREGATE,"Industrial quarry dust for asphalt and blockmaking",TONNE,1.50,true
+Hardcore Rock,MAT-HRD-ROCK,BOULDERS,"200-400mm quarry boulders for shoreline revetment",TONNE,1.80,true

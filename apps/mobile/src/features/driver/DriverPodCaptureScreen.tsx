@@ -72,7 +72,7 @@ export function DriverPodCaptureScreen({
           receiverPhone,
           receiverDesignation: receiverRole,
           deliveredQuantityTonnes: Number(deliveredTonnes),
-          signatureStoragePath: `pod_signatures/${tripId}.png`,
+          signatureStoragePath: `pod-signatures/${tripId}.svg`,
           photoStoragePaths: photos,
           driverRemarks,
         });

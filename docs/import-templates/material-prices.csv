@@ -1,0 +1,7 @@
+quarry_code,material_code,base_price_per_tonne,loading_fee_per_tonne,effective_from,is_active
+QRY-ABK-01,MAT-GRN-20,6500.00,500.00,2026-01-01,true
+QRY-ABK-01,MAT-GRN-12,6800.00,500.00,2026-01-01,true
+QRY-ABK-01,MAT-GRN-25,6200.00,500.00,2026-01-01,true
+QRY-ABK-01,MAT-STN-BASE,5200.00,450.00,2026-01-01,true
+QRY-ABK-01,MAT-GRN-DUST,4500.00,400.00,2026-01-01,true
+QRY-SGM-02,MAT-GRN-20,6600.00,500.00,2026-01-01,true

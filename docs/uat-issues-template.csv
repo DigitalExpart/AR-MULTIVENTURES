@@ -1,0 +1,2 @@
+ID,Date,Module,User Role,Description,Expected,Actual,Severity,Status,Assigned To,Resolution,Retest Result
+ISSUE-001,2026-08-26,Pricing,CUSTOMER,Price quote did not apply volume discount for 300T,Discount applied,Standard price shown,Medium,Open,Engineering Team,,

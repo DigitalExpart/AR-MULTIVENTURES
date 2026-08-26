@@ -1,0 +1,3 @@
+name,code,location_address,state,region,latitude,longitude,daily_capacity_tonnes,is_active
+Abeokuta North Quarry,QRY-ABK-01,"Km 14, Lagos-Abeokuta Expressway",Ogun,South-West,7.1475,3.3619,5000,true
+Sagamu Industrial Quarry,QRY-SGM-02,"Sagamu-Benin Interchange",Ogun,South-West,6.8482,3.6465,4200,true

@@ -1,0 +1,4 @@
+name,code,capacity_tonnes,axle_configuration,description,is_active
+"Standard Tipper 20T",TRK-TYPE-20,20.0,"4x2 / 6x2","Compact tipper for urban deliveries and tight construction sites",true
+"Heavy Tipper 30T",TRK-TYPE-30,30.0,"6x4 Heavy Duty","Standard aggregate tipper for regional highway haulage",true
+"Articulated Tipper 45T",TRK-TYPE-45,45.0,"8x4 Semi-Trailer","High-tonnage chassis for large industrial infrastructure pours",true

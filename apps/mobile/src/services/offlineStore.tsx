@@ -95,7 +95,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
           receiverPhone: item.payload.receiverPhone,
           receiverDesignation: item.payload.receiverDesignation,
           deliveredQuantityTonnes: item.payload.deliveredQuantityTonnes,
-          signatureStoragePath: `pod_signatures/${item.payload.tripId}.png`,
+          signatureStoragePath: `pod-signatures/${item.payload.tripId}.svg`,
           photoStoragePaths: item.payload.photoUris,
           driverRemarks: item.payload.driverRemarks,
         });

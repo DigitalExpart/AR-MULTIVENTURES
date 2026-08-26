@@ -1,0 +1,5 @@
+name,code,address,state,lga,latitude,longitude,is_active
+"Dangote Refinery Site",DEST-REF-01,"Lekki Free Trade Zone, Ibeju-Lekki",Lagos,Ibeju-Lekki,6.4312,4.0125,true
+"Eko Atlantic City",DEST-EKO-02,"Victoria Island Coastal Road",Lagos,Eti-Osa,6.4180,3.4150,true
+"Ikeja Industrial Zone",DEST-IKJ-03,"Commercial Avenue, Ikeja",Lagos,Ikeja,6.5920,3.3420,true
+"Redemption City",DEST-RDM-04,"Km 46, Lagos-Ibadan Expressway",Ogun,Obafemi-Owode,6.8250,3.5120,true

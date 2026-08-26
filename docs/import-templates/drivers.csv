@@ -1,0 +1,4 @@
+first_name,last_name,employee_code,phone_number,email,license_number,license_class,license_expiry,assigned_truck_registration,availability_status,is_active
+Ibrahim,Musa,DRV-001,+2348031112233,driver.musa@armultiventures.com,LIC-LAG-99281,CLASS_E,2027-12-31,LSR-492-YY,AVAILABLE,true
+Babatunde,Adeleke,DRV-002,+2348052223344,driver.adeleke@armultiventures.com,LIC-OGN-88124,CLASS_E,2028-06-30,ABJ-812-XX,AVAILABLE,true
+Chukwuma,Okonkwo,DRV-003,+2348023334455,driver.okonkwo@armultiventures.com,LIC-LAG-11094,CLASS_E,2026-11-30,APP-304-ZZ,AVAILABLE,true

@@ -1,0 +1,4 @@
+registration_number,truck_type_code,capacity_tonnes,ownership_type,contractor_name,make,model,year,chassis_number,engine_number,maintenance_status,availability_status,is_active
+LSR-492-YY,TRK-TYPE-30,30.0,COMPANY,,Sinotruk,HOWO 371,2022,CHAS-2022-88192,ENG-HOWO-9912,OPERATIONAL,AVAILABLE,true
+ABJ-812-XX,TRK-TYPE-30,30.0,COMPANY,,Sinotruk,HOWO 371,2023,CHAS-2023-11029,ENG-HOWO-3341,OPERATIONAL,AVAILABLE,true
+APP-304-ZZ,TRK-TYPE-45,45.0,CONTRACTOR,Dangote Logistics,Shacman,F3000,2021,CHAS-2021-99482,ENG-SHAC-7712,OPERATIONAL,AVAILABLE,true

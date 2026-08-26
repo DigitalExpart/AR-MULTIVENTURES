@@ -1,0 +1,5 @@
+quarry_code,destination_code,rate_per_tonne,distance_km,road_type,effective_from,is_active
+QRY-ABK-01,DEST-REF-01,6200.00,120.0,EXPRESSWAY,2026-01-01,true
+QRY-ABK-01,DEST-EKO-02,5800.00,105.0,EXPRESSWAY,2026-01-01,true
+QRY-ABK-01,DEST-IKJ-03,4200.00,75.0,EXPRESSWAY,2026-01-01,true
+QRY-SGM-02,DEST-REF-01,5400.00,95.0,EXPRESSWAY,2026-01-01,true
