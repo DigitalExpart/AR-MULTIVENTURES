@@ -31,14 +31,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow AR Multiventures to access camera for capturing Proof of Delivery offload photos and weighbridge tickets."
-        }
-      ]
-    ],
     "extra": {
       "eas": {
         "projectId": "ar-multiventures-core"
