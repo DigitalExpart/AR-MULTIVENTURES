@@ -35,7 +35,8 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminNavSection[] = [
   {
     title: 'OVERVIEW',
     items: [
-      { label: 'Command Dashboard', href: '/admin', icon: 'LayoutDashboard' },
+      { label: 'Executive Dashboard', href: '/admin', icon: 'LayoutDashboard' },
+      { label: 'Exceptions Center', href: '/admin/exceptions', icon: 'AlertTriangle', badge: 'Alerts' },
     ],
   },
   {
@@ -87,7 +88,18 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
-    title: 'ADMINISTRATION',
+    title: 'REPORTS & INTELLIGENCE',
+    items: [
+      { label: 'Reports Hub', href: '/admin/reports', icon: 'BarChart3', permission: 'reports.view' },
+      { label: 'Sales & Revenue', href: '/admin/reports/sales', icon: 'TrendingUp', permission: 'reports.view' },
+      { label: 'Receivables Aging', href: '/admin/reports/receivables', icon: 'FileSpreadsheet', permission: 'reports.view' },
+      { label: 'Quarry Performance', href: '/admin/reports/quarries', icon: 'Mountain', permission: 'reports.view' },
+      { label: 'Fleet Utilization', href: '/admin/reports/fleet', icon: 'Truck', permission: 'reports.view' },
+      { label: 'Loading & Scale', href: '/admin/reports/loading', icon: 'Scale', permission: 'reports.view' },
+    ],
+  },
+  {
+    title: 'ADMINISTRATION & AUDIT',
     items: [
       { label: 'Users & Roles', href: '/admin/users', icon: 'Users', permission: 'users.manage' },
       { label: 'Role Matrix', href: '/admin/roles', icon: 'ShieldCheck', permission: 'users.manage' },

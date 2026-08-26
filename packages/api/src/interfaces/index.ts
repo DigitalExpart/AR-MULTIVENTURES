@@ -41,7 +41,25 @@ import type {
   WeighbridgeCapturePayload,
   PodSubmissionPayload,
   OperationsDashboardKPIs,
-  TripStatus
+  TripStatus,
+  DateRangeFilter,
+  ExecutiveDashboardKPIs,
+  SalesReportData,
+  ReceivablesAgingReportData,
+  QuarryReportRow,
+  MaterialReportRow,
+  DestinationReportRow,
+  HaulageReportRow,
+  FinanceReportData,
+  PaymentReportRow,
+  FleetUtilizationRow,
+  DriverReportRow,
+  LoadingReportRow,
+  DeliveryReportRow,
+  CancellationReportRow,
+  AppNotification,
+  NotificationPreference,
+  OperationalException
 } from '@ar-multiventures/types';
 import type { LoginFormValues, RegisterFormValues } from '@ar-multiventures/validation';
 
@@ -62,7 +80,7 @@ export interface IRequisitionRepository {
   list(customerId?: string): Promise<Requisition[]>;
   getById(id: string): Promise<Requisition | null>;
   create(payload: NewRequisitionPayload): Promise<Requisition>;
-  calculatePriceQuote(request: import('@ar-multiventures/types').PriceQuoteRequest): Promise<import('@ar-multiventures/types').PriceQuoteBreakdown>;
+  updateStatus(id: string, status: Requisition['status']): Promise<Requisition>;
 }
 
 export interface IOrderRepository {
@@ -71,12 +89,9 @@ export interface IOrderRepository {
 }
 
 export interface IDeliveryRepository {
-  // Legacy compatibility
   list(customerId?: string): Promise<Delivery[]>;
   getActiveDelivery(customerId?: string): Promise<Delivery | null>;
   getById(id: string): Promise<Delivery | null>;
-
-  // Phase 7 Multi-Trip & Logistics APIs
   getTrips(filters?: { customerId?: string; requisitionId?: string; status?: TripStatus; driverId?: string; quarryId?: string }): Promise<DeliveryTripRecord[]>;
   getTripById(id: string): Promise<DeliveryTripRecord | null>;
   scheduleRequisitionTrips(requisitionId: string, tripCapacities?: number[]): Promise<{ requisitionId: string; totalTrips: number; trips: DeliveryTripRecord[] }>;
@@ -110,13 +125,8 @@ export interface IInvoiceRepository {
 }
 
 export interface IPaymentRepository {
-  list(customerId?: string): Promise<PaymentRecord[]>;
-  getById(id: string): Promise<PaymentRecord | null>;
-  initializeOnlinePayment(payload: PaymentInitRequest): Promise<PaymentInitResponse>;
-  verifyOnlinePayment(reference: string): Promise<PaymentVerifyResponse>;
-  submitBankTransfer(payload: BankTransferSubmissionPayload): Promise<PaymentRecord>;
-  getReceiptByPaymentId(paymentId: string): Promise<ReceiptRecord | null>;
-  getCompanyBankAccounts(): Promise<CompanyBankAccount[]>;
+  list(customerId?: string): Promise<Payment[]>;
+  getById(id: string): Promise<Payment | null>;
 }
 
 export interface IResourceRepository {
@@ -135,18 +145,16 @@ export interface IAdminRepository {
     activeQuarries: number;
     statusBreakdown: Record<string, number>;
   }>;
-  getRequisitions(filters?: { search?: string; status?: string; quarryId?: string }): Promise<Requisition[]>;
+  getRequisitions(filters?: { status?: string; quarryId?: string; search?: string }): Promise<Requisition[]>;
   getRequisitionById(id: string): Promise<Requisition | null>;
-  transitionRequisitionStatus(id: string, status: string, reason?: string): Promise<void>;
   getCustomers(filters?: { search?: string; status?: string }): Promise<any[]>;
-  getCustomerById(id: string): Promise<any | null>;
+  getCustomerById(id: string): Promise<any>;
   getQuarries(): Promise<Quarry[]>;
+  getQuarryById(id: string): Promise<Quarry | null>;
   saveQuarry(quarry: Partial<Quarry>): Promise<Quarry>;
-  toggleQuarryStatus(id: string, isActive: boolean): Promise<void>;
   getMaterials(): Promise<Material[]>;
   saveMaterial(material: Partial<Material>): Promise<Material>;
   getDestinations(): Promise<any[]>;
-  saveDestination(destination: any): Promise<any>;
   getDestinationRequests(): Promise<import('@ar-multiventures/types').DestinationRequestItem[]>;
   reviewDestinationRequest(id: string, status: 'APPROVED' | 'REJECTED', reason?: string): Promise<void>;
   getMaterialPrices(): Promise<import('@ar-multiventures/types').MaterialPriceRecord[]>;
@@ -157,7 +165,7 @@ export interface IAdminRepository {
   saveCustomerPrice(payload: any): Promise<void>;
   getPromotions(): Promise<import('@ar-multiventures/types').PromotionalPriceRecord[]>;
   savePromotion(payload: any): Promise<void>;
-  getAuditLogs(filters?: { entity?: string; action?: string }): Promise<import('@ar-multiventures/types').AuditLogEntry[]>;
+  getAuditLogs(filters?: { entity?: string; action?: string; userId?: string }): Promise<import('@ar-multiventures/types').AuditLogEntry[]>;
   getUsers(): Promise<import('@ar-multiventures/types').AdminUser[]>;
   updateUserRole(userId: string, roleCode: string): Promise<void>;
   toggleUserStatus(userId: string, isActive: boolean): Promise<void>;
@@ -170,7 +178,7 @@ export interface IFinanceRepository {
   getAllCustomerFinancialSummaries(): Promise<CustomerFinancialSummary[]>;
   getInvoices(filters?: { customerId?: string; status?: string; search?: string }): Promise<InvoiceRecord[]>;
   getInvoiceById(id: string): Promise<InvoiceRecord | null>;
-  issueInvoiceForRequisition(requisitionId: string, invoiceType?: InvoiceType): Promise<{ invoiceId: string; invoiceNumber: string }>;
+  issueInvoiceForRequisition(requisitionId: string, invoiceType?: InvoiceType): Promise<{ invoiceId: string; invoiceNumber: string } | InvoiceRecord>;
   getPayments(filters?: { customerId?: string; status?: string; method?: string }): Promise<PaymentRecord[]>;
   getPaymentById(id: string): Promise<PaymentRecord | null>;
   initializeOnlinePayment(payload: PaymentInitRequest): Promise<PaymentInitResponse>;
@@ -183,11 +191,41 @@ export interface IFinanceRepository {
   getReceiptById(id: string): Promise<ReceiptRecord | null>;
   getReceiptByPaymentId(paymentId: string): Promise<ReceiptRecord | null>;
   getCreditNotes(customerId?: string): Promise<CreditNoteRecord[]>;
-  issueCreditNote(payload: { customerId: string; invoiceId?: string; reason: string; items: Array<{ description: string; quantity: number; unit?: string; unitPrice: number; lineTotal?: number }> }): Promise<CreditNoteRecord>;
+  issueCreditNote(payload: any): Promise<CreditNoteRecord>;
   getDebitNotes(customerId?: string): Promise<DebitNoteRecord[]>;
-  issueDebitNote(payload: { customerId: string; invoiceId?: string; reason: string; items: Array<{ description: string; quantity: number; unit?: string; unitPrice: number; lineTotal?: number }> }): Promise<DebitNoteRecord>;
+  issueDebitNote(payload: any): Promise<DebitNoteRecord>;
   evaluateCreditForRequisition(requisitionId: string): Promise<CreditEvaluationResult>;
   grantManagementCreditOverride(requisitionId: string, reason: string): Promise<void>;
   getCustomerStatement(customerId: string, startDate?: string, endDate?: string): Promise<CustomerStatement>;
-  updateCustomerCreditProfile(customerId: string, payload: { creditLimit: number; creditPeriodDays: number; creditStatus: CustomerCreditStatus; notes?: string }): Promise<void>;
+  updateCustomerCreditProfile(customerId: string, payload: any): Promise<void>;
+}
+
+export interface IReportRepository {
+  getExecutiveDashboardKPIs(filter?: DateRangeFilter): Promise<ExecutiveDashboardKPIs>;
+  getSalesReport(filter?: DateRangeFilter): Promise<SalesReportData>;
+  getReceivablesAgingReport(asOfDate?: string): Promise<ReceivablesAgingReportData>;
+  getQuarryReport(filter?: DateRangeFilter): Promise<QuarryReportRow[]>;
+  getMaterialReport(filter?: DateRangeFilter): Promise<MaterialReportRow[]>;
+  getDestinationReport(filter?: DateRangeFilter): Promise<DestinationReportRow[]>;
+  getHaulageReport(filter?: DateRangeFilter): Promise<HaulageReportRow[]>;
+  getFinanceReport(filter?: DateRangeFilter): Promise<FinanceReportData>;
+  getPaymentsReport(filter?: DateRangeFilter): Promise<PaymentReportRow[]>;
+  getFleetUtilizationReport(filter?: DateRangeFilter): Promise<FleetUtilizationRow[]>;
+  getDriverReport(filter?: DateRangeFilter): Promise<DriverReportRow[]>;
+  getLoadingReport(filter?: DateRangeFilter): Promise<LoadingReportRow[]>;
+  getDeliveryReport(filter?: DateRangeFilter): Promise<DeliveryReportRow[]>;
+  getCancellationReport(filter?: DateRangeFilter): Promise<CancellationReportRow[]>;
+}
+
+export interface INotificationRepository {
+  getNotifications(filters?: { userId?: string; customerId?: string; isRead?: boolean }): Promise<AppNotification[]>;
+  markNotificationRead(id: string): Promise<void>;
+  markAllNotificationsRead(userId?: string): Promise<void>;
+  getPreferences(userId: string): Promise<NotificationPreference[]>;
+  updatePreference(userId: string, preference: Partial<NotificationPreference>): Promise<void>;
+}
+
+export interface IExceptionRepository {
+  getExceptions(filters?: { isResolved?: boolean; severity?: string }): Promise<OperationalException[]>;
+  resolveException(id: string, notes?: string): Promise<void>;
 }

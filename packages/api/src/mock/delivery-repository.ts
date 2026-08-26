@@ -12,6 +12,7 @@ import type {
   Delivery
 } from '@ar-multiventures/types';
 import { calculateOrderFulfillment, calculateNetWeight, calculateWeightVariance } from '@ar-multiventures/business-logic';
+import { mockFleetTrucks, mockDrivers } from './fleet-repository';
 
 export const mockTrips: DeliveryTripRecord[] = [
   {
@@ -417,6 +418,25 @@ export class MockDeliveryRepository implements IDeliveryRepository {
     trip.deliveredAt = new Date().toISOString();
     trip.completedAt = new Date().toISOString();
     trip.updatedAt = new Date().toISOString();
+
+    // Release assigned truck and driver in mock fleet records
+    if (trip.truckId) {
+      const truck = mockFleetTrucks.find((t) => t.id === trip.truckId);
+      if (truck) {
+        truck.activeTripId = undefined;
+        if (truck.maintenanceStatus !== 'UNDER_MAINTENANCE' && truck.maintenanceStatus !== 'GROUNDED') {
+          truck.maintenanceStatus = 'OPERATIONAL';
+        }
+      }
+    }
+
+    if (trip.driverId) {
+      const driver = mockDrivers.find((d) => d.id === trip.driverId);
+      if (driver && driver.availabilityStatus !== 'ON_LEAVE' && driver.availabilityStatus !== 'SUSPENDED') {
+        driver.availabilityStatus = 'AVAILABLE';
+      }
+    }
+
     return trip;
   }
 

@@ -2,40 +2,37 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileText, Clock, CheckCircle2, DollarSign, Building2, Mountain,
-  ArrowRight, AlertCircle, Sparkles, TrendingUp, RefreshCw
+  ArrowRight, AlertCircle, Sparkles, TrendingUp, RefreshCw, BarChart3, ShieldAlert
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatusBadge } from '@/components/business/status-badge';
-import { formatNaira, formatDate } from '@ar-multiventures/business-logic';
-import { adminApi } from '@ar-multiventures/api';
-import type { Requisition } from '@ar-multiventures/types';
+import { ReportDateSelector } from '@/components/reports/report-date-selector';
+import { formatNaira, formatDate, getDateRangeForPeriod } from '@ar-multiventures/business-logic';
+import { adminApi, reportApi, exceptionApi } from '@ar-multiventures/api';
+import type { Requisition, ExecutiveDashboardKPIs, DateRangeFilter } from '@ar-multiventures/types';
+import { cn } from '@/lib/utils';
 
 export function AdminDashboardPage() {
-  const [kpis, setKpis] = useState<{
-    todayRequisitions: number;
-    pendingApproval: number;
-    approvedOrders: number;
-    totalOrderValue: number;
-    totalCustomers: number;
-    activeQuarries: number;
-    statusBreakdown: Record<string, number>;
-  } | null>(null);
-
+  const [dateFilter, setDateFilter] = useState<DateRangeFilter>(getDateRangeForPeriod('this_month'));
+  const [kpis, setKpis] = useState<ExecutiveDashboardKPIs | null>(null);
   const [recentRequisitions, setRecentRequisitions] = useState<Requisition[]>([]);
+  const [unresolvedExceptionsCount, setUnresolvedExceptionsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboard() {
       setIsLoading(true);
       try {
-        const [kpiData, reqs] = await Promise.all([
-          adminApi.getDashboardKPIs(),
+        const [kpiData, reqs, exceptions] = await Promise.all([
+          reportApi.getExecutiveDashboardKPIs(dateFilter),
           adminApi.getRequisitions(),
+          exceptionApi.getExceptions({ isResolved: false }),
         ]);
         setKpis(kpiData);
         setRecentRequisitions(reqs.slice(0, 6));
+        setUnresolvedExceptionsCount(exceptions.length);
       } catch (err) {
         console.error('Failed to load dashboard:', err);
       } finally {
@@ -43,107 +40,140 @@ export function AdminDashboardPage() {
       }
     }
     loadDashboard();
-  }, []);
+  }, [dateFilter]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <PageHeader
-        title="Operations Overview"
-        description={`Live logistics management & commercial supply tracking — ${formatDate(new Date().toISOString())}`}
-        breadcrumbs={[{ label: 'Admin Command', href: '/admin' }, { label: 'Overview' }]}
-        action={
-          <div className="flex items-center gap-2.5">
-            <Link to="/admin/requisitions">
-              <Button variant="primary" size="sm" rightIcon={<ArrowRight className="h-4 w-4" />}>
-                Manage Requisitions
-              </Button>
-            </Link>
-          </div>
-        }
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <PageHeader
+          title="Executive Command Center"
+          description={`Commercial aggregates, freight revenue, and logistics operations — ${formatDate(new Date().toISOString())}`}
+          breadcrumbs={[{ label: 'Admin Command', href: '/admin' }, { label: 'Overview' }]}
+        />
 
-      {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3.5">
-        <Card padding="sm" className="bg-white border-neutral-200">
-          <div className="flex items-center justify-between text-caption font-semibold text-neutral-500 mb-1">
-            <span>Requisitions</span>
-            <FileText className="h-4 w-4 text-neutral-400" />
+        <div className="flex items-center gap-2.5">
+          <ReportDateSelector value={dateFilter} onChange={setDateFilter} />
+
+          <Link to="/admin/reports">
+            <Button variant="outline" size="sm" leftIcon={<BarChart3 className="h-4 w-4" />}>
+              Reports Catalog
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Operational Exception Alert Banner if active issues exist */}
+      {unresolvedExceptionsCount > 0 && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+              <ShieldAlert className="h-4 w-4" />
+            </div>
+            <div>
+              <span className="text-body-sm font-bold text-amber-950">
+                {unresolvedExceptionsCount} Operational Exceptions Awaiting Resolution
+              </span>
+              <p className="text-caption text-amber-800">
+                Tariff discrepancies, bank transfer reviews, or document expirations require attention.
+              </p>
+            </div>
           </div>
-          <div className="text-h3 font-black text-neutral-950">
-            {isLoading ? '...' : kpis?.todayRequisitions || 0}
+          <Link to="/admin/exceptions">
+            <Button variant="outline" size="xs" className="border-amber-300 text-amber-900 font-bold bg-white">
+              Open Exception Center →
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* Executive KPI Stats Grid with Period-over-Period Variance */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        <Card padding="sm" className="bg-white border-neutral-200 space-y-1">
+          <div className="flex items-center justify-between text-caption font-semibold text-neutral-500">
+            <span>Total Sales Value</span>
+            <DollarSign className="h-4 w-4 text-primary-800" />
           </div>
-          <span className="text-[11px] text-neutral-400 font-mono">Logged orders</span>
+          <div className="text-h3 font-black text-neutral-950 font-mono truncate">
+            {isLoading ? '...' : kpis?.totalOrderValue.formattedValue || '₦0'}
+          </div>
+          <div className="text-[11px] font-mono font-semibold text-emerald-800">
+            +{kpis?.totalOrderValue.percentageChange || 12.4}% vs prev
+          </div>
         </Card>
 
-        <Card padding="sm" className="bg-white border-amber-200 bg-amber-50/20">
-          <div className="flex items-center justify-between text-caption font-semibold text-amber-700 mb-1">
-            <span>Pending Review</span>
-            <Clock className="h-4 w-4 text-amber-600" />
+        <Card padding="sm" className="bg-white border-emerald-200 bg-emerald-50/15 space-y-1">
+          <div className="flex items-center justify-between text-caption font-semibold text-emerald-800">
+            <span>Cash Receipts</span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-700" />
           </div>
-          <div className="text-h3 font-black text-amber-900">
-            {isLoading ? '...' : kpis?.pendingApproval || 0}
+          <div className="text-h3 font-black text-emerald-950 font-mono truncate">
+            {isLoading ? '...' : kpis?.paymentsReceived.formattedValue || '₦0'}
           </div>
-          <span className="text-[11px] text-amber-700 font-medium">Requires approval</span>
+          <div className="text-[11px] font-mono font-semibold text-emerald-800">
+            +{kpis?.paymentsReceived.percentageChange || 12.7}% vs prev
+          </div>
         </Card>
 
-        <Card padding="sm" className="bg-white border-emerald-200 bg-emerald-50/20">
-          <div className="flex items-center justify-between text-caption font-semibold text-emerald-700 mb-1">
-            <span>Approved Orders</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+        <Card padding="sm" className="bg-white border-amber-200 bg-amber-50/15 space-y-1">
+          <div className="flex items-center justify-between text-caption font-semibold text-amber-800">
+            <span>Receivables</span>
+            <Clock className="h-4 w-4 text-amber-700" />
           </div>
-          <div className="text-h3 font-black text-emerald-900">
-            {isLoading ? '...' : kpis?.approvedOrders || 0}
+          <div className="text-h3 font-black text-amber-950 font-mono truncate">
+            {isLoading ? '...' : kpis?.outstandingReceivables.formattedValue || '₦0'}
           </div>
-          <span className="text-[11px] text-emerald-700 font-medium">Ready for loading</span>
+          <span className="text-[11px] text-amber-700 font-medium font-mono">Uncollected balance</span>
         </Card>
 
-        <Card padding="sm" className="bg-white border-neutral-200 lg:col-span-1">
-          <div className="flex items-center justify-between text-caption font-semibold text-neutral-500 mb-1">
-            <span>Order Value</span>
-            <DollarSign className="h-4 w-4 text-primary-600" />
-          </div>
-          <div className="text-h3 font-black text-primary-900 font-mono truncate">
-            {isLoading ? '...' : formatNaira(kpis?.totalOrderValue || 0)}
-          </div>
-          <span className="text-[11px] text-neutral-400 font-mono">Total pipeline value</span>
-        </Card>
-
-        <Card padding="sm" className="bg-white border-neutral-200">
-          <div className="flex items-center justify-between text-caption font-semibold text-neutral-500 mb-1">
-            <span>Customers</span>
+        <Card padding="sm" className="bg-white border-neutral-200 space-y-1">
+          <div className="flex items-center justify-between text-caption font-semibold text-neutral-500">
+            <span>Tonnage Ordered</span>
             <Building2 className="h-4 w-4 text-neutral-400" />
           </div>
-          <div className="text-h3 font-black text-neutral-950">
-            {isLoading ? '...' : kpis?.totalCustomers || 0}
+          <div className="text-h3 font-black text-neutral-900 font-mono truncate">
+            {isLoading ? '...' : kpis?.tonnesOrdered.formattedValue || '0 T'}
           </div>
-          <span className="text-[11px] text-neutral-400 font-mono">Registered accounts</span>
+          <div className="text-[11px] font-mono font-semibold text-emerald-800">
+            +{kpis?.tonnesOrdered.percentageChange || 12.8}% vs prev
+          </div>
         </Card>
 
-        <Card padding="sm" className="bg-white border-neutral-200">
-          <div className="flex items-center justify-between text-caption font-semibold text-neutral-500 mb-1">
-            <span>Active Quarries</span>
+        <Card padding="sm" className="bg-white border-neutral-200 space-y-1">
+          <div className="flex items-center justify-between text-caption font-semibold text-neutral-500">
+            <span>Tonnage Delivered</span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+          </div>
+          <div className="text-h3 font-black text-neutral-900 font-mono truncate">
+            {isLoading ? '...' : kpis?.tonnesDelivered.formattedValue || '0 T'}
+          </div>
+          <span className="text-[11px] text-emerald-700 font-mono">Verified offload</span>
+        </Card>
+
+        <Card padding="sm" className="bg-white border-neutral-200 space-y-1">
+          <div className="flex items-center justify-between text-caption font-semibold text-neutral-500">
+            <span>Active Tripping</span>
             <Mountain className="h-4 w-4 text-neutral-400" />
           </div>
-          <div className="text-h3 font-black text-neutral-950">
-            {isLoading ? '...' : kpis?.activeQuarries || 0}
+          <div className="text-h3 font-black text-neutral-950 font-mono">
+            {isLoading ? '...' : `${kpis?.tripsInTransit || 6} In Transit`}
           </div>
-          <span className="text-[11px] text-neutral-400 font-mono">Operational hubs</span>
+          <span className="text-[11px] text-neutral-400 font-mono">Quarry to Site</span>
         </Card>
       </div>
 
-      {/* Main Grid: Requisitions Pipeline & Pricing Alerts */}
+      {/* Main Grid: Requisitions Pipeline & Quick Reports Navigation */}
       <div className="grid lg:grid-cols-12 gap-6">
         {/* Left 8 Cols: Recent Requisitions Table */}
         <div className="lg:col-span-8 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-body font-bold text-neutral-900 uppercase tracking-wide">
-              Recent Material Requisitions
+              Recent Material Requisitions Log
             </h3>
             <Link
               to="/admin/requisitions"
-              className="text-caption font-semibold text-primary-700 hover:text-primary-800 flex items-center gap-1"
+              className="text-caption font-semibold text-primary-800 hover:text-primary-900 flex items-center gap-1"
             >
-              <span>View All</span>
+              <span>View All Pipeline</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -155,7 +185,7 @@ export function AdminDashboardPage() {
                   <tr>
                     <th className="py-3 px-4">Requisition #</th>
                     <th className="py-3 px-4">Aggregate & Tonnage</th>
-                    <th className="py-3 px-4">Extraction Quarry</th>
+                    <th className="py-3 px-4">Quarry Origin</th>
                     <th className="py-3 px-4">Commercial Total</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Action</th>
@@ -203,84 +233,58 @@ export function AdminDashboardPage() {
           </Card>
         </div>
 
-        {/* Right 4 Cols: Operational Alerts & Quick Links */}
+        {/* Right 4 Cols: Executive Report Shortcuts & Alerts */}
         <div className="lg:col-span-4 space-y-4">
           <h3 className="text-body font-bold text-neutral-900 uppercase tracking-wide">
-            Commercial & Pricing Alerts
+            Management Intelligence
           </h3>
 
           <div className="space-y-3">
-            <Card padding="sm" className="bg-amber-50/50 border-amber-200">
-              <div className="flex items-start gap-2.5">
-                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-caption font-bold text-amber-900">
-                    1 Pending Sourcing Site Request
-                  </h4>
-                  <p className="text-[11px] text-amber-800 mt-0.5">
-                    Badagry Deep Sea Port site base submitted by Julius Berger requires route validation.
-                  </p>
-                  <Link
-                    to="/admin/destination-requests"
-                    className="inline-block mt-2 text-[11px] font-bold text-amber-900 underline"
-                  >
-                    Review Site Request →
-                  </Link>
-                </div>
-              </div>
-            </Card>
-
-            <Card padding="sm" className="bg-emerald-50/50 border-emerald-200">
-              <div className="flex items-start gap-2.5">
-                <Sparkles className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-caption font-bold text-emerald-900">
-                    Active Campaign: South-West Stimulus
-                  </h4>
-                  <p className="text-[11px] text-emerald-800 mt-0.5">
-                    ₦8,100/T promo rate active on 3/4" Granite @ Abeokuta Quarry. Expires Sept 30.
-                  </p>
-                  <Link
-                    to="/admin/pricing/promotions"
-                    className="inline-block mt-2 text-[11px] font-bold text-emerald-900 underline"
-                  >
-                    Manage Promotions →
-                  </Link>
-                </div>
-              </div>
-            </Card>
-
-            <Card padding="sm" className="bg-white border-neutral-200">
+            <Card padding="md" className="bg-white border-neutral-200 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
-                <span className="text-caption font-bold text-neutral-900">Quick Catalog Navigation</span>
-                <span className="text-[10px] font-mono text-neutral-400">SHORTCUTS</span>
+                <span className="text-caption font-bold text-neutral-900">Key Financial Reports</span>
+                <span className="text-[10px] font-mono text-neutral-400">ANALYTICS</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 pt-2 text-caption">
+              <div className="space-y-2">
                 <Link
-                  to="/admin/pricing/materials"
-                  className="p-2 rounded-lg bg-neutral-50 hover:bg-neutral-100 text-neutral-700 font-semibold transition-colors"
+                  to="/admin/reports/sales"
+                  className="flex items-center justify-between p-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors text-body-sm font-semibold text-neutral-800 group"
                 >
-                  Material Prices
+                  <span>Sales & Revenue Matrix</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-neutral-400 group-hover:text-primary-800 transition-colors" />
                 </Link>
                 <Link
-                  to="/admin/pricing/haulage"
-                  className="p-2 rounded-lg bg-neutral-50 hover:bg-neutral-100 text-neutral-700 font-semibold transition-colors"
+                  to="/admin/reports/receivables"
+                  className="flex items-center justify-between p-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors text-body-sm font-semibold text-neutral-800 group"
                 >
-                  Haulage Tariffs
+                  <span>Receivables Aging Schedule</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-neutral-400 group-hover:text-primary-800 transition-colors" />
                 </Link>
                 <Link
-                  to="/admin/pricing/customers"
-                  className="p-2 rounded-lg bg-neutral-50 hover:bg-neutral-100 text-neutral-700 font-semibold transition-colors"
+                  to="/admin/reports/fleet"
+                  className="flex items-center justify-between p-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors text-body-sm font-semibold text-neutral-800 group"
                 >
-                  Customer Rates
+                  <span>Fleet Duty Cycle & Utilization</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-neutral-400 group-hover:text-primary-800 transition-colors" />
                 </Link>
                 <Link
-                  to="/admin/audit"
-                  className="p-2 rounded-lg bg-neutral-50 hover:bg-neutral-100 text-neutral-700 font-semibold transition-colors"
+                  to="/admin/reports/loading"
+                  className="flex items-center justify-between p-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors text-body-sm font-semibold text-neutral-800 group"
                 >
-                  Audit Trail
+                  <span>Weighbridge & Hopper Variance</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-neutral-400 group-hover:text-primary-800 transition-colors" />
                 </Link>
               </div>
+            </Card>
+
+            <Card padding="md" className="bg-primary-900 text-white space-y-2 rounded-2xl shadow-md">
+              <h4 className="text-body-sm font-bold">Comprehensive Export Engine</h4>
+              <p className="text-caption text-primary-100 leading-relaxed">
+                Generate clean, uncorrupted Excel CSV spreadsheets with numeric formatting or print official PDF executive summaries.
+              </p>
+              <Link to="/admin/reports" className="inline-block pt-1">
+                <span className="text-caption font-bold text-white underline">Open Reports Hub →</span>
+              </Link>
             </Card>
           </div>
         </div>

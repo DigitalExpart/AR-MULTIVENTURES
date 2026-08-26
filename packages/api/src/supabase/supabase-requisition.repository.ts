@@ -26,8 +26,8 @@ export class SupabaseRequisitionRepository implements IRequisitionRepository {
     }
 
     const { data, error } = await query;
-    if (error || !data) {
-      return [];
+    if (error) {
+      throw new Error(`Failed to list requisitions from Supabase: ${error.message}`);
     }
 
     return data.map((row: any) => {

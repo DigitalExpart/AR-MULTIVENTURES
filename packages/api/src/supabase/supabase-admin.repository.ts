@@ -12,342 +12,317 @@ import type {
   AdminUser,
 } from '@ar-multiventures/types';
 import { supabase } from './supabase-client';
-import { MockAdminRepository } from '../mock/admin-repository';
 
 export class SupabaseAdminRepository implements IAdminRepository {
-  private fallbackMock = new MockAdminRepository();
-
   async getDashboardKPIs() {
-    try {
-      const { data: reqs } = await supabase.from('requisitions').select('status, total_amount_snapshot');
-      const { count: customerCount } = await supabase.from('customers').select('*', { count: 'exact', head: true });
-      const { count: quarryCount } = await supabase.from('quarries').select('*', { count: 'exact', head: true });
+    const [reqsRes, custRes, quarryRes] = await Promise.all([
+      supabase.from('requisitions').select('status, total_amount_snapshot'),
+      supabase.from('customers').select('*', { count: 'exact', head: true }),
+      supabase.from('quarries').select('*', { count: 'exact', head: true }),
+    ]);
 
-      if (!reqs) return this.fallbackMock.getDashboardKPIs();
+    if (reqsRes.error) throw new Error(`Failed to fetch dashboard KPIs: ${reqsRes.error.message}`);
 
-      const pendingApproval = reqs.filter((r) => r.status === 'SUBMITTED').length;
-      const approvedOrders = reqs.filter((r) => r.status === 'APPROVED').length;
-      const totalOrderValue = reqs.reduce((sum, r) => sum + Number(r.total_amount_snapshot || 0), 0);
+    const reqs = reqsRes.data || [];
+    const pendingApproval = reqs.filter((r) => r.status === 'SUBMITTED').length;
+    const approvedOrders = reqs.filter((r) => r.status === 'APPROVED').length;
+    const totalOrderValue = reqs.reduce((sum, r) => sum + Number(r.total_amount_snapshot || 0), 0);
 
-      const statusBreakdown: Record<string, number> = {};
-      for (const r of reqs) {
-        statusBreakdown[r.status] = (statusBreakdown[r.status] || 0) + 1;
-      }
-
-      return {
-        todayRequisitions: reqs.length,
-        pendingApproval,
-        approvedOrders,
-        totalOrderValue,
-        totalCustomers: customerCount || 0,
-        activeQuarries: quarryCount || 0,
-        statusBreakdown,
-      };
-    } catch {
-      return this.fallbackMock.getDashboardKPIs();
+    const statusBreakdown: Record<string, number> = {};
+    for (const r of reqs) {
+      statusBreakdown[r.status] = (statusBreakdown[r.status] || 0) + 1;
     }
+
+    return {
+      todayRequisitions: reqs.length,
+      pendingApproval,
+      approvedOrders,
+      totalOrderValue,
+      totalCustomers: custRes.count || 0,
+      activeQuarries: quarryRes.count || 0,
+      statusBreakdown,
+    };
   }
 
   async getRequisitions(filters?: { search?: string; status?: string; quarryId?: string }): Promise<Requisition[]> {
-    try {
-      let query = supabase
-        .from('requisitions')
-        .select(`
-          *,
-          quarries ( name ),
-          requisition_items (
-            id,
-            material_id,
-            quantity,
-            unit,
-            unit_price_snapshot,
-            line_total,
-            materials ( name )
-          )
-        `)
-        .order('created_at', { ascending: false });
+    let query = supabase
+      .from('requisitions')
+      .select(`
+        *,
+        quarries ( name ),
+        requisition_items (
+          id,
+          material_id,
+          quantity,
+          unit_price,
+          total_price,
+          materials ( name )
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-      if (filters?.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status.toUpperCase() as any);
-      }
-      if (filters?.quarryId && filters.quarryId !== 'all') {
-        query = query.eq('quarry_id', filters.quarryId);
-      }
-
-      const { data, error } = await query;
-      if (error || !data) return this.fallbackMock.getRequisitions(filters);
-
-      return data.map((row: any) => {
-        const firstItem = row.requisition_items?.[0];
-        return {
-          id: row.id,
-          referenceNumber: row.requisition_number,
-          customerId: row.customer_id,
-          quarryId: row.quarry_id,
-          quarryName: row.quarries?.name || 'Assigned Quarry',
-          materialId: firstItem?.material_id || '',
-          materialName: firstItem?.materials?.name || 'Standard Aggregate',
-          quantity: Number(firstItem?.quantity || 30),
-          unit: firstItem?.unit || 'tonnes',
-          transportationType: row.transportation_option === 'SELF_PICKUP' ? 'self' : 'company',
-          destination: row.destination_name_cache,
-          destinationAddress: row.destination_address_cache,
-          requestedDeliveryDate: row.requested_delivery_date,
-          status: (row.status || 'DRAFT').toLowerCase() as any,
-          pricing: {
-            materialCost: Number(row.material_amount_snapshot || 0),
-            loadingCharges: Number(row.loading_amount_snapshot || 0),
-            haulageCharges: Number(row.haulage_amount_snapshot || 0),
-            otherCharges: Number(row.other_charges_snapshot || 0),
-            discount: Number(row.discount_amount_snapshot || 0),
-            subtotal: Number(row.total_amount_snapshot || 0),
-            tax: 0,
-            total: Number(row.total_amount_snapshot || 0),
-          },
-          notes: row.notes || undefined,
-          createdAt: row.created_at,
-          updatedAt: row.updated_at,
-        };
-      });
-    } catch {
-      return this.fallbackMock.getRequisitions(filters);
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
     }
-  }
+    if (filters?.quarryId) {
+      query = query.eq('quarry_id', filters.quarryId);
+    }
 
-  async getRequisitionById(id: string): Promise<Requisition | null> {
-    try {
-      const { data: row, error } = await supabase
-        .from('requisitions')
-        .select(`
-          *,
-          quarries ( name ),
-          requisition_items (
-            id,
-            material_id,
-            quantity,
-            unit,
-            unit_price_snapshot,
-            line_total,
-            materials ( name )
-          )
-        `)
-        .or(`id.eq.${id},requisition_number.eq.${id}`)
-        .single();
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to load requisitions: ${error.message}`);
 
-      if (error || !row) return this.fallbackMock.getRequisitionById(id);
-
-      const firstItem = (row as any).requisition_items?.[0];
+    return (data || []).map((row: any) => {
+      const item = row.requisition_items?.[0];
       return {
         id: row.id,
-        referenceNumber: row.requisition_number,
+        referenceNumber: row.reference_number,
         customerId: row.customer_id,
         quarryId: row.quarry_id,
-        quarryName: (row as any).quarries?.name || 'Assigned Quarry',
-        materialId: firstItem?.material_id || '',
-        materialName: firstItem?.materials?.name || 'Selected Material',
-        quantity: Number(firstItem?.quantity || 30),
-        unit: firstItem?.unit || 'tonnes',
-        transportationType: row.transportation_option === 'SELF_PICKUP' ? 'self' : 'company',
-        destination: row.destination_name_cache,
-        destinationAddress: row.destination_address_cache,
-        requestedDeliveryDate: row.requested_delivery_date,
-        status: (row.status || 'DRAFT').toLowerCase() as any,
-        pricing: {
-          materialCost: Number(row.material_amount_snapshot || 0),
-          loadingCharges: Number(row.loading_amount_snapshot || 0),
-          haulageCharges: Number(row.haulage_amount_snapshot || 0),
-          otherCharges: Number(row.other_charges_snapshot || 0),
-          discount: Number(row.discount_amount_snapshot || 0),
-          subtotal: Number(row.total_amount_snapshot || 0),
-          tax: 0,
-          total: Number(row.total_amount_snapshot || 0),
-        },
-        notes: row.notes || undefined,
+        quarryName: row.quarries?.name || 'Unknown Quarry',
+        destinationId: row.destination_id,
+        materialId: item?.material_id || '',
+        materialName: item?.materials?.name || 'Unknown Material',
+        quantity: Number(item?.quantity || 0),
+        unit: 'Tonnes',
+        materialPricePerUnit: Number(item?.unit_price || 0),
+        haulagePricePerUnit: 0,
+        subtotal: Number(row.subtotal_snapshot || 0),
+        vatAmount: Number(row.vat_snapshot || 0),
+        totalAmount: Number(row.total_amount_snapshot || 0),
+        paymentMethod: row.payment_method || 'PAYSTACK',
+        siteContactName: row.site_contact_name || '',
+        siteContactPhone: row.site_contact_phone || '',
+        deliveryAddress: row.delivery_address || '',
+        status: row.status,
+        financialClearanceStatus: row.financial_clearance_status || 'PENDING',
+        approvalNotes: row.approval_notes,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };
-    } catch {
-      return this.fallbackMock.getRequisitionById(id);
-    }
+    });
   }
 
-  async transitionRequisitionStatus(id: string, status: string, reason?: string): Promise<void> {
-    const { data, error } = await supabase.rpc('transition_requisition_status', {
-      p_requisition_id: id,
-      p_target_status: status.toUpperCase() as any,
-      p_reason: reason || null,
-    });
+  async getRequisitionById(id: string): Promise<Requisition | null> {
+    const { data: row, error } = await supabase
+      .from('requisitions')
+      .select(`
+        *,
+        quarries ( name ),
+        requisition_items (
+          id,
+          material_id,
+          quantity,
+          unit_price,
+          total_price,
+          materials ( name )
+        )
+      `)
+      .eq('id', id)
+      .single();
 
     if (error) {
-      throw new Error(error.message || `Failed to transition status to ${status}`);
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to load requisition ${id}: ${error.message}`);
     }
+    if (!row) return null;
 
-    const resObj = data as any;
-    if (resObj && !resObj.success) {
-      throw new Error(resObj.error || `Failed to transition status to ${status}`);
-    }
+    const item = row.requisition_items?.[0];
+    return {
+      id: row.id,
+      referenceNumber: row.reference_number,
+      customerId: row.customer_id,
+      quarryId: row.quarry_id,
+      quarryName: row.quarries?.name || 'Unknown Quarry',
+      destinationId: row.destination_id,
+      materialId: item?.material_id || '',
+      materialName: item?.materials?.name || 'Unknown Material',
+      quantity: Number(item?.quantity || 0),
+      unit: 'Tonnes',
+      materialPricePerUnit: Number(item?.unit_price || 0),
+      haulagePricePerUnit: 0,
+      subtotal: Number(row.subtotal_snapshot || 0),
+      vatAmount: Number(row.vat_snapshot || 0),
+      totalAmount: Number(row.total_amount_snapshot || 0),
+      paymentMethod: row.payment_method || 'PAYSTACK',
+      siteContactName: row.site_contact_name || '',
+      siteContactPhone: row.site_contact_phone || '',
+      deliveryAddress: row.delivery_address || '',
+      status: row.status,
+      financialClearanceStatus: row.financial_clearance_status || 'PENDING',
+      approvalNotes: row.approval_notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 
   async getCustomers(filters?: { search?: string; status?: string }) {
-    try {
-      const { data } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
-      if (!data) return this.fallbackMock.getCustomers(filters);
-      return data.map((c) => ({
-        id: c.id,
-        accountNumber: c.account_number,
-        companyName: c.company_name,
-        contactName: c.trade_name || 'Procurement Officer',
-        phone: c.phone,
-        email: c.email,
-        creditStatus: c.credit_limit > 0 ? 'ACTIVE_CREDIT' : 'PREPAID_ONLY',
-        creditLimit: Number(c.credit_limit),
-        paymentTermsDays: c.payment_terms_days,
-        status: c.status,
-        activeOrdersCount: 1,
-        createdAt: c.created_at,
-      }));
-    } catch {
-      return this.fallbackMock.getCustomers(filters);
+    let query = supabase.from('customers').select('*').order('created_at', { ascending: false });
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
     }
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to load customers: ${error.message}`);
+    return data || [];
   }
 
   async getCustomerById(id: string) {
-    try {
-      const { data: customer } = await supabase.from('customers').select('*').eq('id', id).single();
-      if (!customer) return this.fallbackMock.getCustomerById(id);
-      const { data: addresses } = await supabase.from('customer_addresses').select('*').eq('customer_id', id);
-      const { data: contacts } = await supabase.from('customer_contacts').select('*').eq('customer_id', id);
-
-      return {
-        id: customer.id,
-        accountNumber: customer.account_number,
-        companyName: customer.company_name,
-        contactName: customer.trade_name || 'Key Contact',
-        phone: customer.phone,
-        email: customer.email,
-        creditStatus: customer.credit_limit > 0 ? 'ACTIVE_CREDIT' : 'PREPAID_ONLY',
-        creditLimit: Number(customer.credit_limit),
-        paymentTermsDays: customer.payment_terms_days,
-        status: customer.status,
-        createdAt: customer.created_at,
-        addresses: addresses || [],
-        contacts: contacts || [],
-        requisitions: await this.getRequisitions(),
-      };
-    } catch {
-      return this.fallbackMock.getCustomerById(id);
+    const { data, error } = await supabase.from('customers').select('*').eq('id', id).single();
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to load customer ${id}: ${error.message}`);
     }
+    return data;
   }
 
   async getQuarries(): Promise<Quarry[]> {
-    return this.fallbackMock.getQuarries();
+    const { data, error } = await supabase.from('quarries').select('*').order('name');
+    if (error) throw new Error(`Failed to load quarries: ${error.message}`);
+    return data || [];
+  }
+
+  async getQuarryById(id: string): Promise<Quarry | null> {
+    const { data, error } = await supabase.from('quarries').select('*').eq('id', id).single();
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to load quarry ${id}: ${error.message}`);
+    }
+    return data;
   }
 
   async saveQuarry(quarry: Partial<Quarry>): Promise<Quarry> {
-    return this.fallbackMock.saveQuarry(quarry);
-  }
-
-  async toggleQuarryStatus(id: string, isActive: boolean): Promise<void> {
-    await supabase.from('quarries').update({ is_active: isActive }).eq('id', id);
+    if (quarry.id) {
+      const { data, error } = await supabase.from('quarries').update(quarry).eq('id', quarry.id).select().single();
+      if (error) throw new Error(`Failed to update quarry: ${error.message}`);
+      return data;
+    }
+    const { data, error } = await supabase.from('quarries').insert(quarry).select().single();
+    if (error) throw new Error(`Failed to create quarry: ${error.message}`);
+    return data;
   }
 
   async getMaterials(): Promise<Material[]> {
-    return this.fallbackMock.getMaterials();
+    const { data, error } = await supabase.from('materials').select('*').order('name');
+    if (error) throw new Error(`Failed to load materials: ${error.message}`);
+    return data || [];
   }
 
   async saveMaterial(material: Partial<Material>): Promise<Material> {
-    return this.fallbackMock.saveMaterial(material);
+    if (material.id) {
+      const { data, error } = await supabase.from('materials').update(material).eq('id', material.id).select().single();
+      if (error) throw new Error(`Failed to update material: ${error.message}`);
+      return data;
+    }
+    const { data, error } = await supabase.from('materials').insert(material).select().single();
+    if (error) throw new Error(`Failed to create material: ${error.message}`);
+    return data;
   }
 
   async getDestinations() {
-    return this.fallbackMock.getDestinations();
+    const { data, error } = await supabase.from('destinations').select('*').order('name');
+    if (error) throw new Error(`Failed to load destinations: ${error.message}`);
+    return data || [];
   }
 
-  async saveDestination(destination: any) {
-    return this.fallbackMock.saveDestination(destination);
+  async getDestinationRequests(): Promise<DestinationRequestItem[]> {
+    const { data, error } = await supabase.from('destination_requests').select('*').order('created_at', { ascending: false });
+    if (error) throw new Error(`Failed to load destination requests: ${error.message}`);
+    return data || [];
   }
 
-  async getDestinationRequests() {
-    return this.fallbackMock.getDestinationRequests();
-  }
-
-  async reviewDestinationRequest(id: string, status: 'APPROVED' | 'REJECTED', reason?: string) {
-    await supabase
+  async reviewDestinationRequest(id: string, decision: 'APPROVED' | 'REJECTED', notes?: string) {
+    const { error } = await supabase
       .from('destination_requests')
-      .update({
-        status,
-        rejection_reason: reason || null,
-        reviewed_at: new Date().toISOString(),
-      })
+      .update({ status: decision, review_notes: notes, updated_at: new Date().toISOString() })
       .eq('id', id);
+    if (error) throw new Error(`Failed to review destination request: ${error.message}`);
   }
 
-  async getMaterialPrices() {
-    return this.fallbackMock.getMaterialPrices();
+  async getMaterialPrices(quarryId?: string): Promise<MaterialPriceRecord[]> {
+    let query = supabase.from('material_prices').select('*').order('effective_date', { ascending: false });
+    if (quarryId) query = query.eq('quarry_id', quarryId);
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to load material prices: ${error.message}`);
+    return data || [];
   }
 
-  async saveMaterialPrice(payload: any) {
-    await this.fallbackMock.saveMaterialPrice(payload);
+  async saveMaterialPrice(record: Partial<MaterialPriceRecord>): Promise<MaterialPriceRecord> {
+    const { data, error } = await supabase.from('material_prices').insert(record).select().single();
+    if (error) throw new Error(`Failed to save material price: ${error.message}`);
+    return data;
   }
 
-  async getHaulageRates() {
-    return this.fallbackMock.getHaulageRates();
+  async getHaulageRates(): Promise<HaulageRateRecord[]> {
+    const { data, error } = await supabase.from('haulage_rates').select('*').order('effective_date', { ascending: false });
+    if (error) throw new Error(`Failed to load haulage rates: ${error.message}`);
+    return data || [];
   }
 
-  async saveHaulageRate(payload: any) {
-    await this.fallbackMock.saveHaulageRate(payload);
+  async saveHaulageRate(record: Partial<HaulageRateRecord>): Promise<HaulageRateRecord> {
+    const { data, error } = await supabase.from('haulage_rates').insert(record).select().single();
+    if (error) throw new Error(`Failed to save haulage rate: ${error.message}`);
+    return data;
   }
 
-  async getCustomerPrices() {
-    return this.fallbackMock.getCustomerPrices();
+  async getCustomerPrices(customerId?: string): Promise<CustomerPriceRecord[]> {
+    let query = supabase.from('customer_prices').select('*').order('effective_date', { ascending: false });
+    if (customerId) query = query.eq('customer_id', customerId);
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to load customer prices: ${error.message}`);
+    return data || [];
   }
 
-  async saveCustomerPrice(payload: any) {
-    await this.fallbackMock.saveCustomerPrice(payload);
+  async saveCustomerPrice(record: Partial<CustomerPriceRecord>): Promise<CustomerPriceRecord> {
+    const { data, error } = await supabase.from('customer_prices').insert(record).select().single();
+    if (error) throw new Error(`Failed to save customer price: ${error.message}`);
+    return data;
   }
 
-  async getPromotions() {
-    return this.fallbackMock.getPromotions();
+  async getPromotions(): Promise<PromotionalPriceRecord[]> {
+    const { data, error } = await supabase.from('promotions').select('*').order('start_date', { ascending: false });
+    if (error) throw new Error(`Failed to load promotions: ${error.message}`);
+    return data || [];
   }
 
-  async savePromotion(payload: any) {
-    await this.fallbackMock.savePromotion(payload);
+  async savePromotion(record: Partial<PromotionalPriceRecord>): Promise<PromotionalPriceRecord> {
+    const { data, error } = await supabase.from('promotions').insert(record).select().single();
+    if (error) throw new Error(`Failed to save promotion: ${error.message}`);
+    return data;
   }
 
-  async getAuditLogs(filters?: { entity?: string; action?: string }) {
-    try {
-      const { data } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50);
-      if (!data) return this.fallbackMock.getAuditLogs(filters);
-      return data.map((a) => ({
-        id: a.id,
-        actorName: 'Operations Staff',
-        action: a.action,
-        entityType: a.entity_type,
-        entityId: a.entity_id || undefined,
-        reference: a.entity_id ? `ID: ${a.entity_id.slice(0, 8)}...` : undefined,
-        oldValues: a.old_values as any,
-        newValues: a.new_values as any,
-        ipAddress: a.ip_address || undefined,
-        createdAt: a.created_at,
-      }));
-    } catch {
-      return this.fallbackMock.getAuditLogs(filters);
-    }
+  async getAuditLogs(filters?: { action?: string; userId?: string }): Promise<AuditLogEntry[]> {
+    let query = supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
+    if (filters?.action) query = query.eq('action', filters.action);
+    if (filters?.userId) query = query.eq('user_id', filters.userId);
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to load audit logs: ${error.message}`);
+    return (data || []).map((l: any) => ({
+      id: l.id,
+      userId: l.user_id,
+      userName: l.user_name || 'System Staff',
+      action: l.action,
+      entityType: l.entity_type,
+      entityId: l.entity_id,
+      reference: l.reference,
+      oldValue: l.old_value,
+      newValue: l.new_value,
+      ipAddress: l.ip_address,
+      createdAt: l.created_at,
+    }));
   }
 
-  async getUsers() {
-    return this.fallbackMock.getUsers();
+  async getUsers(): Promise<AdminUser[]> {
+    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    if (error) throw new Error(`Failed to load users: ${error.message}`);
+    return data || [];
   }
 
-  async updateUserRole(userId: string, roleCode: string) {
-    await this.fallbackMock.updateUserRole(userId, roleCode);
+  async updateUserStatus(id: string, status: string): Promise<void> {
+    const { error } = await supabase.from('profiles').update({ status }).eq('id', id);
+    if (error) throw new Error(`Failed to update user status: ${error.message}`);
   }
 
-  async toggleUserStatus(userId: string, isActive: boolean) {
-    await this.fallbackMock.toggleUserStatus(userId, isActive);
-  }
-
-  async getRoles() {
-    return this.fallbackMock.getRoles();
+  async updateUserRole(id: string, role: string): Promise<void> {
+    const { error } = await supabase.from('profiles').update({ role }).eq('id', id);
+    if (error) throw new Error(`Failed to update user role: ${error.message}`);
   }
 }
