@@ -18,7 +18,24 @@ import { PaymentsListPage } from '@/features/payments/pages/payments-list';
 import { AccountPage } from '@/features/account/pages/account';
 import { NotificationsPage } from '@/features/notifications/pages/notifications';
 
-// Admin Operations & Catalog Pages
+// Driver Mobile Web Portal Pages
+import { DriverDashboardPage } from '@/features/driver/pages/driver-dashboard';
+import { DriverTripsListPage } from '@/features/driver/pages/driver-trips-list';
+import { DriverTripDetailPage } from '@/features/driver/pages/driver-trip-detail';
+
+// Quarry Operations Pages
+import { QuarryQueuePage } from '@/features/quarry/pages/quarry-queue';
+
+// Admin Operations & Dispatch Pages
+import { AdminOperationsDashboardPage } from '@/features/admin/operations/dashboard';
+import { AdminOperationsDispatchPage } from '@/features/admin/operations/dispatch';
+
+// Admin Fleet Pages
+import { AdminFleetTrucksPage } from '@/features/admin/fleet/trucks';
+import { AdminFleetDriversPage } from '@/features/admin/fleet/drivers';
+import { AdminFleetMaintenancePage } from '@/features/admin/fleet/maintenance';
+
+// Admin Catalog & Customer Pages
 import { AdminDashboardPage } from '@/features/admin/pages/dashboard';
 import { AdminRequisitionsListPage } from '@/features/admin/pages/requisitions-list';
 import { AdminRequisitionDetailPage } from '@/features/admin/pages/requisition-detail';
@@ -68,6 +85,14 @@ export function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
+      {/* Driver Mobile Web Portal Routes */}
+      <Route path="/driver" element={<DriverDashboardPage />} />
+      <Route path="/driver/trips" element={<DriverTripsListPage />} />
+      <Route path="/driver/trips/:id" element={<DriverTripDetailPage />} />
+
+      {/* Quarry Dock Portal Route */}
+      <Route path="/operations/quarry" element={<QuarryQueuePage />} />
+
       {/* Authenticated Customer Portal Shell (/app/*) */}
       <Route path="/app" element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
@@ -75,6 +100,7 @@ export function App() {
         <Route path="requisitions/new" element={<NewRequisitionPage />} />
         <Route path="orders" element={<OrdersListPage />} />
         <Route path="deliveries" element={<DeliveriesListPage />} />
+        <Route path="deliveries/:id" element={<DeliveriesListPage />} />
         <Route path="invoices" element={<InvoicesListPage />} />
         <Route path="payments" element={<PaymentsListPage />} />
         <Route path="account" element={<AccountPage />} />
@@ -86,11 +112,19 @@ export function App() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboardPage />} />
         
-        {/* Operations */}
+        {/* Operations & Dispatch Command Center */}
+        <Route path="operations" element={<AdminOperationsDashboardPage />} />
+        <Route path="operations/dispatch" element={<AdminOperationsDispatchPage />} />
         <Route path="requisitions" element={<AdminRequisitionsListPage />} />
         <Route path="requisitions/:id" element={<AdminRequisitionDetailPage />} />
         <Route path="customers" element={<AdminCustomersListPage />} />
         <Route path="customers/:id" element={<AdminCustomerDetailPage />} />
+
+        {/* Fleet & Driver Management */}
+        <Route path="fleet" element={<AdminFleetTrucksPage />} />
+        <Route path="fleet/trucks" element={<AdminFleetTrucksPage />} />
+        <Route path="fleet/drivers" element={<AdminFleetDriversPage />} />
+        <Route path="fleet/maintenance" element={<AdminFleetMaintenancePage />} />
 
         {/* Catalog */}
         <Route path="quarries" element={<AdminQuarriesListPage />} />

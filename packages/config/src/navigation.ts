@@ -35,18 +35,28 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminNavSection[] = [
   {
     title: 'OVERVIEW',
     items: [
-      { label: 'Operations Command', href: '/admin', icon: 'LayoutDashboard' },
+      { label: 'Command Dashboard', href: '/admin', icon: 'LayoutDashboard' },
     ],
   },
   {
-    title: 'OPERATIONS',
+    title: 'OPERATIONS & DISPATCH',
     items: [
+      { label: 'Operations Command', href: '/admin/operations', icon: 'LayoutDashboard', permission: 'requisitions.view' },
+      { label: 'Dispatch Board', href: '/admin/operations/dispatch', icon: 'Truck', permission: 'requisitions.view' },
       { label: 'Requisitions', href: '/admin/requisitions', icon: 'FileText', permission: 'requisitions.view' },
       { label: 'Customers', href: '/admin/customers', icon: 'Building2', permission: 'customers.view' },
     ],
   },
   {
-    title: 'CATALOG',
+    title: 'FLEET & DRIVERS',
+    items: [
+      { label: 'Heavy Trucks', href: '/admin/fleet/trucks', icon: 'Truck', permission: 'fleet.manage' },
+      { label: 'Drivers Roster', href: '/admin/fleet/drivers', icon: 'Users', permission: 'fleet.manage' },
+      { label: 'Maintenance Logs', href: '/admin/fleet/maintenance', icon: 'Settings', permission: 'fleet.manage' },
+    ],
+  },
+  {
+    title: 'CATALOG & SITES',
     items: [
       { label: 'Quarries', href: '/admin/quarries', icon: 'Mountain', permission: 'quarries.manage' },
       { label: 'Materials', href: '/admin/materials', icon: 'Layers', permission: 'materials.manage' },
@@ -55,7 +65,7 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
-    title: 'COMMERCIAL',
+    title: 'COMMERCIAL & PRICING',
     items: [
       { label: 'Pricing Center', href: '/admin/pricing', icon: 'Calculator', permission: 'pricing.view' },
       { label: 'Material Prices', href: '/admin/pricing/materials', icon: 'Coins', permission: 'pricing.manage' },
@@ -66,7 +76,7 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
-    title: 'FINANCE & LEDGER',
+    title: 'FINANCE & SUB-LEDGER',
     items: [
       { label: 'Finance Command', href: '/admin/finance', icon: 'Banknote', permission: 'reports.view' },
       { label: 'Customer Accounts', href: '/admin/finance/accounts', icon: 'Wallet', permission: 'customers.view' },
@@ -86,8 +96,6 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminNavSection[] = [
     ],
   },
 ];
-
-
 
 export const FOOTER_LINKS = {
   company: [

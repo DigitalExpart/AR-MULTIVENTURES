@@ -26,7 +26,22 @@ import type {
   CreditEvaluationResult,
   FinanceDashboardKPIs,
   InvoiceType,
-  CustomerCreditStatus
+  CustomerCreditStatus,
+  TruckRecord,
+  DriverRecord,
+  TruckMaintenanceRecord,
+  TruckDocument,
+  DriverDocument,
+  FleetKPIs,
+  DeliveryTripRecord,
+  TripWeighbridgeRecord,
+  TripProofOfDelivery,
+  OrderFulfillmentSummary,
+  TripAssignmentPayload,
+  WeighbridgeCapturePayload,
+  PodSubmissionPayload,
+  OperationsDashboardKPIs,
+  TripStatus
 } from '@ar-multiventures/types';
 import type { LoginFormValues, RegisterFormValues } from '@ar-multiventures/validation';
 
@@ -56,9 +71,37 @@ export interface IOrderRepository {
 }
 
 export interface IDeliveryRepository {
+  // Legacy compatibility
   list(customerId?: string): Promise<Delivery[]>;
   getActiveDelivery(customerId?: string): Promise<Delivery | null>;
   getById(id: string): Promise<Delivery | null>;
+
+  // Phase 7 Multi-Trip & Logistics APIs
+  getTrips(filters?: { customerId?: string; requisitionId?: string; status?: TripStatus; driverId?: string; quarryId?: string }): Promise<DeliveryTripRecord[]>;
+  getTripById(id: string): Promise<DeliveryTripRecord | null>;
+  scheduleRequisitionTrips(requisitionId: string, tripCapacities?: number[]): Promise<{ requisitionId: string; totalTrips: number; trips: DeliveryTripRecord[] }>;
+  assignTrip(payload: TripAssignmentPayload): Promise<DeliveryTripRecord>;
+  recordQuarryCheckin(tripId: string): Promise<DeliveryTripRecord>;
+  recordWeighbridgeAndLoading(payload: WeighbridgeCapturePayload): Promise<DeliveryTripRecord>;
+  dispatchTrip(tripId: string): Promise<DeliveryTripRecord>;
+  recordTripPod(payload: PodSubmissionPayload): Promise<DeliveryTripRecord>;
+  getOrderFulfillmentSummary(requisitionId: string): Promise<OrderFulfillmentSummary>;
+  getCustomerFulfillments(customerId?: string): Promise<OrderFulfillmentSummary[]>;
+  getDriverTrips(driverId?: string): Promise<DeliveryTripRecord[]>;
+  getQuarryQueue(quarryId?: string): Promise<{ scheduled: DeliveryTripRecord[]; atQuarry: DeliveryTripRecord[]; loading: DeliveryTripRecord[]; loaded: DeliveryTripRecord[] }>;
+  getOperationsKPIs(): Promise<OperationsDashboardKPIs>;
+}
+
+export interface IFleetRepository {
+  getTrucks(filters?: { isActive?: boolean; maintenanceStatus?: string; search?: string }): Promise<TruckRecord[]>;
+  getTruckById(id: string): Promise<TruckRecord | null>;
+  saveTruck(truck: Partial<TruckRecord>): Promise<TruckRecord>;
+  getTruckMaintenanceRecords(truckId?: string): Promise<TruckMaintenanceRecord[]>;
+  saveMaintenanceRecord(record: Partial<TruckMaintenanceRecord>): Promise<TruckMaintenanceRecord>;
+  getDrivers(filters?: { isActive?: boolean; availabilityStatus?: string; search?: string }): Promise<DriverRecord[]>;
+  getDriverById(id: string): Promise<DriverRecord | null>;
+  saveDriver(driver: Partial<DriverRecord>): Promise<DriverRecord>;
+  getFleetKPIs(): Promise<FleetKPIs>;
 }
 
 export interface IInvoiceRepository {

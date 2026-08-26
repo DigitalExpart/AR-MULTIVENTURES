@@ -6,5 +6,5 @@ export * from './entities';
 export * from './database.types';
 export * from './admin';
 export * from './finance';
-
-
+export * from './fleet';
+export * from './delivery';

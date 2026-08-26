@@ -3,13 +3,14 @@ import {
   MockCustomerRepository,
   MockRequisitionRepository,
   MockOrderRepository,
-  MockDeliveryRepository,
   MockInvoiceRepository,
   MockPaymentRepository,
   MockResourceRepository,
 } from './mock/repositories';
 import { MockAdminRepository } from './mock/admin-repository';
 import { MockFinanceRepository } from './mock/finance-repository';
+import { MockFleetRepository } from './mock/fleet-repository';
+import { MockDeliveryRepository } from './mock/delivery-repository';
 
 import {
   SupabaseAuthRepository,
@@ -21,6 +22,8 @@ import {
   isSupabaseConfigured,
   supabase,
 } from './supabase';
+import { SupabaseFleetRepository } from './supabase/supabase-fleet.repository';
+import { SupabaseDeliveryRepository } from './supabase/supabase-delivery.repository';
 
 import type {
   IAuthRepository,
@@ -28,6 +31,7 @@ import type {
   IRequisitionRepository,
   IOrderRepository,
   IDeliveryRepository,
+  IFleetRepository,
   IInvoiceRepository,
   IPaymentRepository,
   IResourceRepository,
@@ -39,6 +43,8 @@ export * from './interfaces';
 export * from './mock/mock-db';
 export * from './mock/admin-repository';
 export * from './mock/finance-repository';
+export * from './mock/fleet-repository';
+export * from './mock/delivery-repository';
 export * from './supabase';
 
 // Determine active data provider (Explicit 'supabase' | 'mock')
@@ -55,6 +61,7 @@ export const mockCustomerApi = new MockCustomerRepository();
 export const mockRequisitionApi = new MockRequisitionRepository();
 export const mockOrderApi = new MockOrderRepository();
 export const mockDeliveryApi = new MockDeliveryRepository();
+export const mockFleetApi = new MockFleetRepository();
 export const mockInvoiceApi = new MockInvoiceRepository();
 export const mockPaymentApi = new MockPaymentRepository();
 export const mockResourceApi = new MockResourceRepository();
@@ -68,13 +75,16 @@ export const supabaseRequisitionApi = new SupabaseRequisitionRepository();
 export const supabaseResourceApi = new SupabaseResourceRepository();
 export const supabaseAdminApi = new SupabaseAdminRepository();
 export const supabaseFinanceApi = new SupabaseFinanceRepository();
+export const supabaseFleetApi = new SupabaseFleetRepository();
+export const supabaseDeliveryApi = new SupabaseDeliveryRepository();
 
 // Active Exported Repositories (Auto-bound based on configured data provider)
 export const authApi: IAuthRepository = useSupabase ? supabaseAuthApi : mockAuthApi;
 export const customerApi: ICustomerRepository = useSupabase ? supabaseCustomerApi : mockCustomerApi;
 export const requisitionApi: IRequisitionRepository = useSupabase ? supabaseRequisitionApi : mockRequisitionApi;
 export const orderApi: IOrderRepository = mockOrderApi;
-export const deliveryApi: IDeliveryRepository = mockDeliveryApi;
+export const deliveryApi: IDeliveryRepository = useSupabase ? supabaseDeliveryApi : mockDeliveryApi;
+export const fleetApi: IFleetRepository = useSupabase ? supabaseFleetApi : mockFleetApi;
 export const invoiceApi: IInvoiceRepository = mockInvoiceApi;
 export const paymentApi: IPaymentRepository = mockPaymentApi;
 export const resourceApi: IResourceRepository = useSupabase ? supabaseResourceApi : mockResourceApi;
