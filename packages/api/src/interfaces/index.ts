@@ -132,6 +132,7 @@ export interface IPaymentRepository {
 export interface IResourceRepository {
   getQuarries(): Promise<Quarry[]>;
   getMaterials(): Promise<Material[]>;
+  getDestinations(): Promise<any[]>;
   getTrucks(): Promise<Truck[]>;
 }
 

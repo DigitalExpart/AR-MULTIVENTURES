@@ -413,6 +413,16 @@ export class MockResourceRepository implements IResourceRepository {
     return mockMaterials;
   }
 
+  async getDestinations(): Promise<any[]> {
+    await new Promise((r) => setTimeout(r, 100));
+    return [
+      { id: 'dst-lekki', code: 'DEST-REF-01', name: 'Dangote Refinery / Lekki Free Trade Zone', state: 'Lagos', city: 'Ibeju-Lekki', address: 'Lekki Free Trade Zone, Ibeju-Lekki, Lagos', isActive: true },
+      { id: 'dst-eko', code: 'DEST-EKO-02', name: 'Eko Atlantic City Project', state: 'Lagos', city: 'Victoria Island', address: 'Victoria Island Coastal Road, Lagos', isActive: true },
+      { id: 'dst-ikeja', code: 'DEST-IKJ-03', name: 'Ikeja Industrial Zone', state: 'Lagos', city: 'Ikeja', address: 'Commercial Avenue, Ikeja, Lagos', isActive: true },
+      { id: 'dst-rdm', code: 'DEST-RDM-04', name: 'Redemption City Infrastructure Zone', state: 'Ogun', city: 'Mowe', address: 'Km 46, Lagos-Ibadan Expressway, Ogun', isActive: true },
+    ];
+  }
+
   async getTrucks(): Promise<Truck[]> {
     await new Promise((r) => setTimeout(r, 100));
     return mockTrucks;

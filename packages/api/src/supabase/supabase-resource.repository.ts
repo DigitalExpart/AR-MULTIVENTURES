@@ -78,4 +78,27 @@ export class SupabaseResourceRepository implements IResourceRepository {
       currentStatus: 'idle',
     }));
   }
+
+  async getDestinations(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+
+    if (error || !data || data.length === 0) {
+      return [];
+    }
+
+    return data.map((d) => ({
+      id: d.id,
+      code: d.code,
+      name: d.name,
+      state: d.state,
+      city: d.lga || d.state,
+      address: d.address || d.name,
+      isActive: d.is_active,
+    }));
+  }
 }
+

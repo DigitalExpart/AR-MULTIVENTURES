@@ -16,7 +16,7 @@ import { DevDataBadge } from '../../components/common/DevDataBadge';
 import { useAuth } from '../../services/authStore';
 
 export function LoginScreen({ navigation }: { navigation?: any }) {
-  const { login } = useAuth();
+  const { login, isDataProviderMock } = useAuth();
   const [email, setEmail] = useState('procurement@buildcorp.ng');
   const [password, setPassword] = useState('password123');
   const [role, setRole] = useState<'CUSTOMER' | 'DRIVER'>('CUSTOMER');
