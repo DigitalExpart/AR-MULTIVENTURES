@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import type { UserProfile, UserRole } from '@ar-multiventures/types';
 
 export interface MobileAuthState {
@@ -45,8 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>('mock-jwt-session-token');
 
   const login = async (email: string, role: 'CUSTOMER' | 'DRIVER' = 'CUSTOMER') => {
-    // In Supabase mode, this calls supabase.auth.signInWithPassword
-    // In Mock mode, sets authoritative mock profile
     if (role === 'DRIVER' || email.includes('driver')) {
       setUser(mockDriverUser);
       setActiveRole('DRIVER');
