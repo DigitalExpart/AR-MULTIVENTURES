@@ -17,6 +17,8 @@
     "typescript": "~6.0.2"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.4"
+    "@supabase/supabase-js": "^2.112.4",
+    "expo": "^56.0.20",
+    "react-native": "0.85.3"
   }
 }
