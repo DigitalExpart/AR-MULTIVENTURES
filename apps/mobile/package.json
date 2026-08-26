@@ -1,0 +1,25 @@
+{
+  "name": "@ar-multiventures/mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ar-multiventures/types": "*",
+    "@ar-multiventures/validation": "*",
+    "@ar-multiventures/business-logic": "*",
+    "@ar-multiventures/config": "*",
+    "@ar-multiventures/api": "*",
+    "@supabase/supabase-js": "^2.49.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "typescript": "~5.6.3"
+  }
+}

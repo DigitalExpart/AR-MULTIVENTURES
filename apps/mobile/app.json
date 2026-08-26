@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "AR Multiventures",
+    "slug": "ar-multiventures",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "armultiventures",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B6B3A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.armultiventures.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B6B3A"
+      },
+      "package": "com.armultiventures.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow AR Multiventures to access camera for capturing Proof of Delivery offload photos and weighbridge tickets."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ar-multiventures-core"
+      }
+    }
+  }
+}
